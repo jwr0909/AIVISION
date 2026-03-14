@@ -1,21 +1,23 @@
 import React, { ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Factory, Eye, Bell } from 'lucide-react'
+import { LayoutDashboard, Factory, Eye, Bell, Package } from 'lucide-react'
 
 interface SmartFactoryWrapperProps {
   children: ReactNode
 }
 
 const sfMenuItems = [
-  { path: '/sf-dashboard', label: '대시보드', description: '생산 및 품질 현황' },
-  { path: '/sf-production', label: '작업실적입력', description: '생산 실적 등록' },
-  { path: '/sf-vision', label: 'AI 비전 검사', description: '불량 감지 모니터링' },
+  { path: '/sf-dashboard',   label: '대시보드',    description: '생산 및 품질 현황' },
+  { path: '/sf-production',  label: '작업실적입력', description: '생산 실적 등록' },
+  { path: '/sf-vision',      label: 'AI 비전 검사', description: '불량 감지 모니터링' },
+  { path: '/sf-item-master', label: '품목등록',     description: '품목 마스터 관리' },
 ]
 
 const sfMenuIcons: Record<string, React.ElementType> = {
-  '/sf-dashboard': LayoutDashboard,
-  '/sf-production': Factory,
-  '/sf-vision': Eye,
+  '/sf-dashboard':   LayoutDashboard,
+  '/sf-production':  Factory,
+  '/sf-vision':      Eye,
+  '/sf-item-master': Package,
 }
 
 /**

@@ -13,6 +13,7 @@ const CookiePolicy  = lazy(() => import('./pages/CookiePolicy'))
 const SmartDashboard  = lazy(() => import('./pages/SmartDashboard'))
 const WorkResult      = lazy(() => import('./pages/WorkResult'))
 const VisionInspection = lazy(() => import('./pages/VisionInspection'))
+const ItemMaster      = lazy(() => import('./pages/ItemMaster'))
 
 const VALID_PATHS = [
   '/',
@@ -23,6 +24,7 @@ const VALID_PATHS = [
   '/sf-dashboard',
   '/sf-production',
   '/sf-vision',
+  '/sf-item-master',
 ]
 
 function SFLoading() {
@@ -41,14 +43,16 @@ function PageManager() {
   const navigate  = useNavigate()
   const path      = location.pathname
 
-  const [sfDashboardLoaded,  setSfDashboardLoaded]  = useState(false)
-  const [sfProductionLoaded, setSfProductionLoaded] = useState(false)
-  const [sfVisionLoaded,     setSfVisionLoaded]     = useState(false)
+  const [sfDashboardLoaded,   setSfDashboardLoaded]   = useState(false)
+  const [sfProductionLoaded,  setSfProductionLoaded]  = useState(false)
+  const [sfVisionLoaded,      setSfVisionLoaded]      = useState(false)
+  const [sfItemMasterLoaded,  setSfItemMasterLoaded]  = useState(false)
 
   useEffect(() => {
-    if (path === '/sf-dashboard')  setSfDashboardLoaded(true)
-    if (path === '/sf-production') setSfProductionLoaded(true)
-    if (path === '/sf-vision')     setSfVisionLoaded(true)
+    if (path === '/sf-dashboard')    setSfDashboardLoaded(true)
+    if (path === '/sf-production')   setSfProductionLoaded(true)
+    if (path === '/sf-vision')       setSfVisionLoaded(true)
+    if (path === '/sf-item-master')  setSfItemMasterLoaded(true)
   }, [path])
 
   // 유효하지 않은 경로 → 홈으로
@@ -101,6 +105,15 @@ function PageManager() {
         <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <VisionInspection />
+          </Suspense>
+        </div>
+      )}
+
+      {/* 스마트팩토리 — 품목등록 */}
+      {sfItemMasterLoaded && (
+        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-item-master' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <ItemMaster />
           </Suspense>
         </div>
       )}

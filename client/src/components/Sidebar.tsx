@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Factory,
   Eye,
+  Package,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store/useAppStore'
@@ -41,9 +42,10 @@ const Sidebar = () => {
     { icon: Image,           label: '편집',      path: '/image-editor',  sf: false },
     { icon: Video,           label: '동영상',    path: '/video-maker',   sf: false },
     { icon: MessageSquare,   label: '채팅',      path: '/chat',          sf: false },
-    { icon: LayoutDashboard, label: '대시보드',  path: '/sf-dashboard',  sf: true  },
-    { icon: Factory,         label: '작업실적',  path: '/sf-production', sf: true  },
-    { icon: Eye,             label: 'AI 비전',   path: '/sf-vision',     sf: true  },
+    { icon: LayoutDashboard, label: '대시보드',  path: '/sf-dashboard',    sf: true  },
+    { icon: Factory,         label: '작업실적',  path: '/sf-production',   sf: true  },
+    { icon: Eye,             label: 'AI 비전',   path: '/sf-vision',       sf: true  },
+    { icon: Package,         label: '품목등록',  path: '/sf-item-master',  sf: true  },
   ]
 
   // 고객지원 링크 (DecomDirectTrade 원본 그대로)

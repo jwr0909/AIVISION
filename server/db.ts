@@ -176,12 +176,87 @@ export async function initBoardTables() {
     // ─── 스마트팩토리 테이블 ───
     await client.query(`
       CREATE TABLE IF NOT EXISTS item_mst (
-        item_cd VARCHAR(40) PRIMARY KEY,
-        item_name VARCHAR(60) NOT NULL,
-        std VARCHAR(60),
-        unit_cd VARCHAR(5)
+        item_cd       VARCHAR(40) PRIMARY KEY,
+        item_name     VARCHAR(100) NOT NULL,
+        std           VARCHAR(100),
+        unit_cd       VARCHAR(5),
+        use_yn        CHAR(1) DEFAULT 'Y',
+        bom_yn        CHAR(1) DEFAULT 'N',
+        item_cls      VARCHAR(20) DEFAULT '제품',
+        acct_cd       VARCHAR(10),
+        acct_name     VARCHAR(40),
+        drawing_no    VARCHAR(60),
+        item_name_eng VARCHAR(100),
+        item_grp      VARCHAR(40),
+        base_unit     VARCHAR(10),
+        conv_unit     VARCHAR(10),
+        base_ratio    NUMERIC(12,4) DEFAULT 1,
+        conv_ratio    NUMERIC(12,4) DEFAULT 1,
+        bom_unit      VARCHAR(10),
+        bom_base_ratio NUMERIC(12,4) DEFAULT 1,
+        bom_ratio     NUMERIC(12,4) DEFAULT 1,
+        wh_cd         VARCHAR(20),
+        wh_name       VARCHAR(60),
+        prc_cd        VARCHAR(20),
+        prc_name      VARCHAR(60),
+        eqp_cd        VARCHAR(20),
+        eqp_name      VARCHAR(60),
+        prod_lt       INTEGER DEFAULT 0,
+        div_cls       VARCHAR(20),
+        prod_plan_yn  CHAR(1) DEFAULT 'N',
+        in_out_cls    VARCHAR(10) DEFAULT '사내',
+        supply_cls    VARCHAR(20),
+        out_vendor_cd VARCHAR(20),
+        vendor_name   VARCHAR(60),
+        opt_stock     NUMERIC(14,2) DEFAULT 0,
+        safe_stock    NUMERIC(14,2) DEFAULT 0,
+        init_qty      NUMERIC(14,2) DEFAULT 0,
+        init_amt      NUMERIC(16,2) DEFAULT 0,
+        std_cost      NUMERIC(16,2) DEFAULT 0,
+        work_date     VARCHAR(10),
+        work_id       VARCHAR(20),
+        created_at    TIMESTAMP DEFAULT NOW(),
+        updated_at    TIMESTAMP DEFAULT NOW()
       );
     `)
+    // 기존 테이블에 누락 컬럼 추가 (IF NOT EXISTS)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS use_yn CHAR(1) DEFAULT 'Y'`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS bom_yn CHAR(1) DEFAULT 'N'`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS item_cls VARCHAR(20) DEFAULT '제품'`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS acct_cd VARCHAR(10)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS acct_name VARCHAR(40)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS drawing_no VARCHAR(60)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS item_name_eng VARCHAR(100)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS item_grp VARCHAR(40)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS base_unit VARCHAR(10)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS conv_unit VARCHAR(10)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS base_ratio NUMERIC(12,4) DEFAULT 1`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS conv_ratio NUMERIC(12,4) DEFAULT 1`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS bom_unit VARCHAR(10)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS bom_base_ratio NUMERIC(12,4) DEFAULT 1`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS bom_ratio NUMERIC(12,4) DEFAULT 1`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS wh_cd VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS wh_name VARCHAR(60)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS prc_cd VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS prc_name VARCHAR(60)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS eqp_cd VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS eqp_name VARCHAR(60)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS prod_lt INTEGER DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS div_cls VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS prod_plan_yn CHAR(1) DEFAULT 'N'`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS in_out_cls VARCHAR(10) DEFAULT '사내'`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS supply_cls VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS out_vendor_cd VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS vendor_name VARCHAR(60)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS opt_stock NUMERIC(14,2) DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS safe_stock NUMERIC(14,2) DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS init_qty NUMERIC(14,2) DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS init_amt NUMERIC(16,2) DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS std_cost NUMERIC(16,2) DEFAULT 0`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS work_date VARCHAR(10)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS work_id VARCHAR(20)`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`)
+    await client.query(`ALTER TABLE item_mst ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`)
     console.log('📦 item_mst 테이블 준비 완료')
 
     await client.query(`

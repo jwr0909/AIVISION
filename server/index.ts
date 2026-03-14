@@ -248,6 +248,115 @@ app.delete('/api/work-result/:id', async (req, res) => {
   }
 })
 
+// ─── 품목 마스터 API ───
+
+// 품목 목록 조회
+app.get('/api/item-master', async (req, res) => {
+  try {
+    const { item_cls, keyword, std, use_yn } = req.query
+    let sql = `SELECT * FROM item_mst WHERE 1=1`
+    const params: any[] = []
+    let i = 1
+    if (item_cls) { sql += ` AND item_cls=$${i++}`; params.push(item_cls) }
+    if (keyword)  { sql += ` AND (item_cd ILIKE $${i} OR item_name ILIKE $${i})`; params.push(`%${keyword}%`); i++ }
+    if (std)      { sql += ` AND std ILIKE $${i++}`; params.push(`%${std}%`) }
+    if (use_yn === 'Y') { sql += ` AND use_yn='Y'` }
+    sql += ` ORDER BY created_at DESC`
+    const rows = await query(sql, params)
+    res.json(rows)
+  } catch (e) {
+    console.error('item-master list error:', e)
+    res.status(500).json({ message: '조회 실패' })
+  }
+})
+
+// 품목 단건 조회
+app.get('/api/item-master/:item_cd', async (req, res) => {
+  try {
+    const rows = await query('SELECT * FROM item_mst WHERE item_cd=$1', [req.params.item_cd])
+    if (!rows.length) return res.status(404).json({ message: '없음' })
+    res.json(rows[0])
+  } catch (e) {
+    res.status(500).json({ message: '조회 실패' })
+  }
+})
+
+// 품목 등록
+app.post('/api/item-master', async (req, res) => {
+  try {
+    const d = req.body
+    const now = new Date().toISOString().slice(0,10)
+    await query(`
+      INSERT INTO item_mst (
+        item_cd, item_name, std, use_yn, bom_yn, item_cls, acct_cd, acct_name,
+        drawing_no, item_name_eng, item_grp, base_unit, conv_unit, base_ratio, conv_ratio,
+        bom_unit, bom_base_ratio, bom_ratio, wh_cd, wh_name, prc_cd, prc_name,
+        eqp_cd, eqp_name, prod_lt, div_cls, prod_plan_yn, in_out_cls, supply_cls,
+        out_vendor_cd, vendor_name, opt_stock, safe_stock, init_qty, init_amt,
+        std_cost, work_date, work_id
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38
+      )`,
+      [d.item_cd, d.item_name, d.std, d.use_yn??'Y', d.bom_yn??'N', d.item_cls??'제품',
+       d.acct_cd, d.acct_name, d.drawing_no, d.item_name_eng, d.item_grp,
+       d.base_unit, d.conv_unit, d.base_ratio??1, d.conv_ratio??1,
+       d.bom_unit, d.bom_base_ratio??1, d.bom_ratio??1,
+       d.wh_cd, d.wh_name, d.prc_cd, d.prc_name, d.eqp_cd, d.eqp_name,
+       d.prod_lt??0, d.div_cls, d.prod_plan_yn??'N', d.in_out_cls??'사내',
+       d.supply_cls, d.out_vendor_cd, d.vendor_name,
+       d.opt_stock??0, d.safe_stock??0, d.init_qty??0, d.init_amt??0,
+       d.std_cost??0, now, 'admin']
+    )
+    res.json({ success: true })
+  } catch (e: any) {
+    console.error('item-master create error:', e)
+    res.status(500).json({ message: e.detail ?? '등록 실패' })
+  }
+})
+
+// 품목 수정
+app.put('/api/item-master/:item_cd', async (req, res) => {
+  try {
+    const d = req.body
+    const now = new Date().toISOString().slice(0,10)
+    await query(`
+      UPDATE item_mst SET
+        item_name=$1, std=$2, use_yn=$3, bom_yn=$4, item_cls=$5, acct_cd=$6, acct_name=$7,
+        drawing_no=$8, item_name_eng=$9, item_grp=$10, base_unit=$11, conv_unit=$12,
+        base_ratio=$13, conv_ratio=$14, bom_unit=$15, bom_base_ratio=$16, bom_ratio=$17,
+        wh_cd=$18, wh_name=$19, prc_cd=$20, prc_name=$21, eqp_cd=$22, eqp_name=$23,
+        prod_lt=$24, div_cls=$25, prod_plan_yn=$26, in_out_cls=$27, supply_cls=$28,
+        out_vendor_cd=$29, vendor_name=$30, opt_stock=$31, safe_stock=$32,
+        init_qty=$33, init_amt=$34, std_cost=$35, work_date=$36, work_id=$37, updated_at=NOW()
+      WHERE item_cd=$38`,
+      [d.item_name, d.std, d.use_yn??'Y', d.bom_yn??'N', d.item_cls??'제품',
+       d.acct_cd, d.acct_name, d.drawing_no, d.item_name_eng, d.item_grp,
+       d.base_unit, d.conv_unit, d.base_ratio??1, d.conv_ratio??1,
+       d.bom_unit, d.bom_base_ratio??1, d.bom_ratio??1,
+       d.wh_cd, d.wh_name, d.prc_cd, d.prc_name, d.eqp_cd, d.eqp_name,
+       d.prod_lt??0, d.div_cls, d.prod_plan_yn??'N', d.in_out_cls??'사내',
+       d.supply_cls, d.out_vendor_cd, d.vendor_name,
+       d.opt_stock??0, d.safe_stock??0, d.init_qty??0, d.init_amt??0,
+       d.std_cost??0, now, 'admin', req.params.item_cd]
+    )
+    res.json({ success: true })
+  } catch (e) {
+    console.error('item-master update error:', e)
+    res.status(500).json({ message: '수정 실패' })
+  }
+})
+
+// 품목 삭제
+app.delete('/api/item-master/:item_cd', async (req, res) => {
+  try {
+    await query('DELETE FROM item_mst WHERE item_cd=$1', [req.params.item_cd])
+    res.json({ success: true })
+  } catch (e) {
+    res.status(500).json({ message: '삭제 실패' })
+  }
+})
+
 // DB 초기화 (테이블 생성)
 initBoardTables().catch((err) => {
   console.error('⚠️ DB 초기화 실패 (서버는 계속 실행됩니다):', err)
