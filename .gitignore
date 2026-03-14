@@ -20,3 +20,11 @@ uploads/
 
 # OS
 Thumbs.db
+
+# 압축 파일
+*.7z
+*.zip
+*.tar.gz
+
+# AIDATAVISION 소스 (메인 프로젝트에 통합 완료)
+AIDATAVISION/

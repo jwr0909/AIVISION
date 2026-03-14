@@ -173,6 +173,75 @@ export async function initBoardTables() {
     `)
     console.log('📦 feed_reactions 테이블 준비 완료')
 
+    // ─── 스마트팩토리 테이블 ───
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS item_mst (
+        item_cd VARCHAR(40) PRIMARY KEY,
+        item_name VARCHAR(60) NOT NULL,
+        std VARCHAR(60),
+        unit_cd VARCHAR(5)
+      );
+    `)
+    console.log('📦 item_mst 테이블 준비 완료')
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS emp_mst (
+        emp_id VARCHAR(10) PRIMARY KEY,
+        emp_name VARCHAR(20) NOT NULL,
+        dept_name VARCHAR(30)
+      );
+    `)
+    console.log('📦 emp_mst 테이블 준비 완료')
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS work_performances (
+        id SERIAL PRIMARY KEY,
+        work_order_no VARCHAR(20) NOT NULL,
+        item_cd VARCHAR(40) REFERENCES item_mst(item_cd),
+        emp_id VARCHAR(10) REFERENCES emp_mst(emp_id),
+        work_date TIMESTAMP DEFAULT NOW(),
+        plan_qty INTEGER DEFAULT 0,
+        prod_qty INTEGER DEFAULT 0,
+        bad_qty INTEGER DEFAULT 0,
+        status VARCHAR(10) DEFAULT 'RUNNING'
+      );
+    `)
+    console.log('📦 work_performances 테이블 준비 완료')
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_vision_logs (
+        id SERIAL PRIMARY KEY,
+        work_performance_id INTEGER REFERENCES work_performances(id),
+        barcode VARCHAR(50),
+        scan_time TIMESTAMP DEFAULT NOW(),
+        result VARCHAR(2) NOT NULL,
+        defect_type VARCHAR(20),
+        confidence_score DECIMAL(5,2),
+        image_url TEXT,
+        overlay_url TEXT,
+        camera_ip VARCHAR(20),
+        processing_time_ms INTEGER
+      );
+    `)
+    console.log('📦 ai_vision_logs 테이블 준비 완료')
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS work_result_entries (
+        id SERIAL PRIMARY KEY,
+        work_order_no VARCHAR(50),
+        prc_cd VARCHAR(20),
+        prc_name VARCHAR(100),
+        work_date VARCHAR(10),
+        emp_id VARCHAR(30),
+        total_qty INTEGER DEFAULT 0,
+        total_bad_qty INTEGER DEFAULT 0,
+        details JSONB,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `)
+    console.log('📦 work_result_entries 테이블 준비 완료')
+
     // 인덱스 생성
     await client.query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`)
     await client.query(`CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id)`)

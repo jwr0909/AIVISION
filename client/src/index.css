@@ -83,3 +83,35 @@ body {
               radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
               radial-gradient(ellipse at 50% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
 }
+
+/* ─── 스마트팩토리 섹션 라이트 테마 ─── */
+.sf-light {
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  color: hsl(222.2 47.4% 11.2%);
+}
+
+.sf-light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+.sf-light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
