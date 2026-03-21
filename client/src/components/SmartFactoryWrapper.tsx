@@ -38,8 +38,8 @@ export default function SmartFactoryWrapper({ children }: SmartFactoryWrapperPro
     <div className="sf-light flex flex-col h-full bg-slate-50">
       {/* 스마트팩토리 상단 헤더 */}
       <header className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center h-full">
+          <div className="flex items-center gap-2 mr-4">
             <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
               <span className="text-white text-[10px] font-black">KQ</span>
             </div>
@@ -48,9 +48,9 @@ export default function SmartFactoryWrapper({ children }: SmartFactoryWrapperPro
               <span className="text-xs text-blue-600 font-semibold ml-1.5">제조AI 스마트팩토리 실습</span>
             </div>
           </div>
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          
           {/* 서브 탭 네비게이션 */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center h-full gap-1 pt-1">
             {sfMenuItems.map((item) => {
               const isActive = location.pathname === item.path
               const Icon = sfMenuIcons[item.path]
@@ -58,10 +58,10 @@ export default function SmartFactoryWrapper({ children }: SmartFactoryWrapperPro
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 h-full text-xs font-medium transition-colors border-b-2 mt-[1px] ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                      ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 hover:border-slate-300'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
