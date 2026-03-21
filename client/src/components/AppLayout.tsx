@@ -9,13 +9,6 @@ import { useTabStore } from '../store/useTabStore'
 import FloatingChat from './FloatingChat'
 
 const menuItems = [
-  { group: '기본메뉴', items: [
-    { icon: Home, label: '홈', path: '/' },
-    { icon: FileText, label: 'PDF 변환', path: '/pdf-converter' },
-    { icon: ImageIcon, label: '이미지 편집', path: '/image-editor' },
-    { icon: Video, label: '동영상', path: '/video-maker' },
-    { icon: MessageSquare, label: '채팅', path: '/chat' },
-  ]},
   { group: '스마트팩토리', items: [
     { icon: LayoutDashboard, label: '대시보드', path: '/sf-dashboard' },
     { icon: Factory, label: '작업실적입력', path: '/sf-production' },
@@ -23,6 +16,13 @@ const menuItems = [
     { icon: Settings, label: '비전 설정', path: '/sf-vision-setting' },
     { icon: Package, label: '품목등록', path: '/sf-item-master' },
     { icon: ShieldAlert, label: '검사요청유형', path: '/sf-defect-type' },
+  ]},
+  { group: '기본메뉴', items: [
+    { icon: Home, label: '홈', path: '/' },
+    { icon: FileText, label: 'PDF 변환', path: '/pdf-converter' },
+    { icon: ImageIcon, label: '이미지 편집', path: '/image-editor' },
+    { icon: Video, label: '동영상', path: '/video-maker' },
+    { icon: MessageSquare, label: '채팅', path: '/chat' },
   ]}
 ]
 
