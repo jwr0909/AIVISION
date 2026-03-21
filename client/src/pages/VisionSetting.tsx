@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import Webcam from "react-webcam"
-import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, PlusCircle } from "lucide-react"
+import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, PlusCircle, X } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import ItemSearchModal from "@/components/ItemSearchModal"
 import DefectTypeSearchModal from "@/components/DefectTypeSearchModal"
@@ -127,6 +127,22 @@ export default function VisionSetting() {
     alert("학습 데이터가 모두 초기화되었습니다.")
   }
 
+  // 특정 클래스 초기화
+  const handleClearClass = (className: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (classifier) {
+      try {
+        classifier.clearClass(className)
+      } catch (e) {
+        console.error("클래스 초기화 실패", e)
+      }
+    }
+    setTrainCounts((prev) => ({
+      ...prev,
+      [className]: 0
+    }))
+  }
+
   // 불량 유형 선택 추가/삭제
   const toggleDefect = (defectName: string) => {
     setConfig(prev => ({
@@ -220,42 +236,63 @@ export default function VisionSetting() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   
                   {/* OK 버튼 */}
-                  <button 
-                    onClick={() => handleTrain("OK")}
-                    disabled={isModelLoading}
-                    className="relative flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all active:scale-95 group disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="w-5 h-5 text-emerald-600" />
-                      <div className="text-left">
-                        <div className="text-[12px] font-bold text-emerald-800">OK (정상)</div>
-                        <div className="text-[10px] text-emerald-600 group-hover:underline">학습 데이터 추가</div>
+                  <div className="relative group">
+                    <button 
+                      onClick={() => handleTrain("OK")}
+                      disabled={isModelLoading}
+                      className="w-full relative flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="w-5 h-5 text-emerald-600" />
+                        <div className="text-left">
+                          <div className="text-[12px] font-bold text-emerald-800">OK (정상)</div>
+                          <div className="text-[10px] text-emerald-600 group-hover:underline">학습 데이터 추가</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-bold text-emerald-700 shadow-sm">
-                      {trainCounts["OK"] || 0}
-                    </div>
-                  </button>
+                      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-bold text-emerald-700 shadow-sm">
+                        {trainCounts["OK"] || 0}
+                      </div>
+                    </button>
+                    {(trainCounts["OK"] || 0) > 0 && (
+                      <button 
+                        onClick={(e) => handleClearClass("OK", e)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="데이터 삭제"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
 
                   {/* NG 버튼들 (설정에서 선택된 유형만 표시) */}
                   {config.selectedDefects.map(defect => (
-                    <button 
-                      key={defect}
-                      onClick={() => handleTrain(defect)}
-                      disabled={isModelLoading}
-                      className="relative flex items-center justify-between p-3 bg-rose-50 border border-rose-100 rounded-lg hover:bg-rose-100 transition-all active:scale-95 group disabled:opacity-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Camera className="w-5 h-5 text-rose-500" />
-                        <div className="text-left max-w-[100px]">
-                          <div className="text-[12px] font-bold text-rose-800 truncate" title={defect}>{defect}</div>
-                          <div className="text-[10px] text-rose-500 group-hover:underline">불량 예시 추가</div>
+                    <div key={defect} className="relative group">
+                      <button 
+                        onClick={() => handleTrain(defect)}
+                        disabled={isModelLoading}
+                        className="w-full relative flex items-center justify-between p-3 bg-rose-50 border border-rose-100 rounded-lg hover:bg-rose-100 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Camera className="w-5 h-5 text-rose-500" />
+                          <div className="text-left max-w-[100px]">
+                            <div className="text-[12px] font-bold text-rose-800 truncate" title={defect}>{defect}</div>
+                            <div className="text-[10px] text-rose-500 group-hover:underline">불량 예시 추가</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-bold text-rose-700 shadow-sm shrink-0">
-                        {trainCounts[defect] || 0}
-                      </div>
-                    </button>
+                        <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-bold text-rose-700 shadow-sm shrink-0">
+                          {trainCounts[defect] || 0}
+                        </div>
+                      </button>
+                      {(trainCounts[defect] || 0) > 0 && (
+                        <button 
+                          onClick={(e) => handleClearClass(defect, e)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="데이터 삭제"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   ))}
                   
                 </div>
