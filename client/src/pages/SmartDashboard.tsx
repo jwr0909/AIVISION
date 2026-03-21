@@ -9,6 +9,7 @@ import {
   TrendingUp, TrendingDown, Factory, Eye, Clock, ChevronLeft, ChevronRight,
   Search, Save, Trash2, Printer, FileSpreadsheet, Download, LogIn, LogOut,
   Coffee, Target, Shield, Zap, Bell, User, BarChart2, Plus,
+  ShoppingCart, FileText, Truck, CreditCard, RotateCcw
 } from "lucide-react";
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper";
 
@@ -203,12 +204,24 @@ export default function SmartDashboard() {
           from{transform:translateX(16px);opacity:0}
           to{transform:translateX(0);opacity:1}
         }
+        @keyframes shine {
+          0% { transform: translateX(-150%) skewX(-20deg); }
+          100% { transform: translateX(200%) skewX(-20deg); }
+        }
+        @keyframes shimmerText {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
         .anim-up  { animation: fadeSlideUp .45s ease both; }
         .anim-in  { animation: fadeIn .5s ease both; }
         .anim-sl  { animation: slideLeft .4s ease both; }
         .live-dot { animation: pulse2 1.4s infinite; }
         .card-hover { transition: transform .2s, box-shadow .2s; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -4px rgba(0,0,0,.12); }
+        .shimmer-text {
+          background-size: 200% auto;
+          animation: shimmerText 4s linear infinite;
+        }
       `}</style>
 
       {/* ── 툴바 ── */}
@@ -264,75 +277,47 @@ export default function SmartDashboard() {
         </div>
       </div>
 
-      {/* ── 공지 배너 + KPI 카드 5개 ── */}
-      <div className="grid grid-cols-12 gap-3 mb-3">
-        {/* 공지 배너 */}
-        <div className="col-span-12 lg:col-span-3 anim-up" style={{animationDelay:".1s"}}>
-          <div className="h-full bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 rounded-xl p-4 text-white shadow-lg shadow-blue-200/50 relative overflow-hidden card-hover">
-            {/* 희미한 배경 타이틀 */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-              <span className="text-[64px] font-black text-white/5 tracking-widest">KFQ</span>
-            </div>
-            <div className="relative">
-              <div className="flex items-center gap-1.5 mb-3">
-                <Bell className="w-3.5 h-3.5 text-yellow-300" />
-                <span className="text-[10px] font-bold text-yellow-300 uppercase tracking-widest">공지사항</span>
-              </div>
-              <div key={annIdx} className="anim-sl text-[12px] font-medium leading-relaxed min-h-[60px]">
-                {announcements[annIdx]}
-              </div>
-              <div className="flex gap-1 mt-3">
-                {announcements.map((_, i) => (
-                  <button key={i} onClick={() => setAnnIdx(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${i === annIdx ? "bg-white w-4" : "bg-white/40"}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 카드 5개 */}
+      {/* ── KPI 카드 5개 ── */}
+      <div className="grid grid-cols-5 gap-3 mb-3">
         {[
-          { label: "총 검사 수량", value: total, sub: "전일 대비 +12%", subColor: "text-emerald-600", icon: Activity, accent: "from-blue-500 to-blue-600", border: "border-blue-200", bg: "bg-blue-50", iconBg: "bg-blue-100", iconColor: "text-blue-600", trend: "up" },
-          { label: "양품 수량 (OK)", value: ok, sub: `수율 ${rate}%`, subColor: "text-emerald-600", icon: CheckCircle, accent: "from-emerald-500 to-green-600", border: "border-emerald-200", bg: "bg-emerald-50", iconBg: "bg-emerald-100", iconColor: "text-emerald-600", trend: "up" },
-          { label: "불량 수량 (NG)", value: ng, sub: `불량률 ${ngRate}%`, subColor: "text-red-600", icon: AlertTriangle, accent: "from-red-500 to-rose-600", border: "border-red-200", bg: "bg-red-50", iconBg: "bg-red-100", iconColor: "text-red-500", trend: "down" },
-          { label: "주요 결함", value: null, valueStr: topDefect, sub: `발생 ${stats?.distribution?.[0]?.count ?? 1}회`, subColor: "text-orange-600", icon: Shield, accent: "from-orange-500 to-amber-500", border: "border-orange-200", bg: "bg-orange-50", iconBg: "bg-orange-100", iconColor: "text-orange-500", trend: null },
-          { label: "목표 달성률", value: null, valueStr: `${rate}%`, sub: "목표 95% 대비", subColor: "text-purple-600", icon: Target, accent: "from-purple-500 to-violet-600", border: "border-purple-200", bg: "bg-purple-50", iconBg: "bg-purple-100", iconColor: "text-purple-600", trend: "up" },
+          { id: 1, title: "ORDER 현황", val1: 3574, val2: 21255489, icon: ShoppingCart, bg: "from-[#F0F7FF] to-[#E0F0FF]/50", numColor: "from-blue-500 to-indigo-500", subColor: "text-blue-400" },
+          { id: 2, title: "수출 신고 현황", val1: 0, val2: 0, icon: FileText, bg: "from-[#F4FAF6] to-[#E6F5EA]/50", numColor: "from-emerald-400 to-green-500", subColor: "text-emerald-500" },
+          { id: 3, title: "납품 현황", val1: 0, val2: 0, icon: Truck, bg: "from-[#FFFDF0] to-[#FFF8D6]/50", numColor: "from-amber-400 to-orange-500", subColor: "text-amber-500" },
+          { id: 4, title: "매출 마감 현황", val1: 11334, val2: 6487173, icon: CreditCard, bg: "from-[#F9F5FF] to-[#F3EBFF]/50", numColor: "from-purple-500 to-fuchsia-500", subColor: "text-purple-400" },
+          { id: 5, title: "반입 현황", val1: 0, val2: 0, icon: RotateCcw, bg: "from-[#FFF5F7] to-[#FFEBF0]/50", numColor: "from-rose-400 to-pink-500", subColor: "text-rose-400" },
         ].map((kpi, i) => (
-          <div key={i} className={`col-span-6 lg:col-span-2 anim-up card-hover`} style={{animationDelay:`${.12 + i*.05}s`}}>
-            <div className={`bg-white rounded-xl border ${kpi.border} shadow-sm overflow-hidden h-full`}>
-              {/* 그라디언트 상단 바 */}
-              <div className={`h-1 bg-gradient-to-r ${kpi.accent}`} />
-              <div className="p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center shadow-sm`}>
-                    <kpi.icon className={`w-4 h-4 ${kpi.iconColor}`} />
+          <div key={i} className="anim-up card-hover flex flex-col h-[180px]" style={{animationDelay:`${.1s + i*.05}s`}}>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full relative">
+               {/* Header (White background, moving animation, gradient text) */}
+               <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-2 bg-white z-10 shrink-0 relative overflow-hidden">
+                  <div className="w-[22px] h-[22px] rounded-full bg-blue-50 text-blue-600 text-[11px] font-black flex items-center justify-center shrink-0 z-10 shadow-sm border border-blue-100">
+                    {kpi.id}
                   </div>
-                  {kpi.trend && (
-                    kpi.trend === "up"
-                      ? <ArrowUpRight className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      : <TrendingDown className="w-4 h-4 text-red-500 mt-0.5" />
-                  )}
-                </div>
-                {/* 희미한 배경 라벨 */}
-                <div className="relative">
-                  <div className="absolute -top-1 right-0 text-[28px] font-black text-slate-100 leading-none pointer-events-none select-none truncate">
-                    {kpi.label.split(" ")[0]}
+                  <span className="text-[13px] font-bold shimmer-text bg-gradient-to-r from-slate-800 via-slate-400 to-slate-800 bg-clip-text text-transparent z-10">
+                    {kpi.title}
+                  </span>
+                  {/* Moving shine animation over header */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-[shine_3s_infinite]" />
+               </div>
+               
+               {/* Body (Faint gradient background) */}
+               <div className={`flex-1 bg-gradient-to-b ${kpi.bg} p-4 flex flex-col items-center justify-center relative overflow-hidden`}>
+                  {/* Big Number */}
+                  <div className={`text-[32px] leading-none font-black shimmer-text bg-gradient-to-r ${kpi.numColor} bg-clip-text text-transparent z-10`}>
+                    <AnimatedNumber value={kpi.val1} />
                   </div>
-                  <div className="relative">
-                    <div className="text-[22px] font-black text-slate-800 leading-tight">
-                      {kpi.value !== null
-                        ? <AnimatedNumber value={kpi.value} />
-                        : kpi.valueStr}
-                      {kpi.value !== null && <span className="text-xs font-normal text-slate-400 ml-1">EA</span>}
-                    </div>
-                    <div className="text-[10px] font-medium text-slate-500 mt-0.5 truncate">{kpi.label}</div>
-                    <div className={`text-[10px] font-semibold mt-1 flex items-center gap-0.5 ${kpi.subColor}`}>
-                      <TrendingUp className="w-3 h-3" /> {kpi.sub}
-                    </div>
+                  
+                  {/* Divider */}
+                  <div className="w-12 h-px bg-slate-300/40 my-2 z-10" />
+                  
+                  {/* Sub Number */}
+                  <div className={`text-[14px] font-bold ${kpi.subColor} z-10`}>
+                    <AnimatedNumber value={kpi.val2} />
                   </div>
-                </div>
-              </div>
+                  
+                  {/* Background Icon */}
+                  <kpi.icon className="absolute w-24 h-24 text-slate-900 opacity-[0.03] right-[-10px] bottom-[-10px] pointer-events-none transform -rotate-12" />
+               </div>
             </div>
           </div>
         ))}
