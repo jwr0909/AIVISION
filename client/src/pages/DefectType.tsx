@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Save, Trash2, Download, RefreshCw, ChevronDown, ShieldAlert } from 'lucide-react'
 import SmartFactoryWrapper from '@/components/SmartFactoryWrapper'
+import { useToolbarStore } from '@/store/useToolbarStore'
+import { useEffect } from 'react'
 
 /* ─────────────────── 타입 ─────────────────── */
 type DefectType = {
@@ -101,6 +103,17 @@ export default function DefectType() {
     if (confirm(`"${selected.defect_name}" 항목을 삭제하시겠습니까?`)) delMut.mutate()
   }
 
+  useEffect(() => {
+    const { setActions, clearActions } = useToolbarStore.getState()
+    setActions({
+      onSearch: handleSearch,
+      onNew: handleNew,
+      onSave: () => saveMut.mutate(),
+      onDelete: handleDelete,
+    })
+    return () => clearActions()
+  }, [filter, isNew, selected, form])
+
   /* 그룹별 통계 */
   const grpStats = groups.map(g => ({
     ...g,
@@ -113,38 +126,6 @@ export default function DefectType() {
         .dt-row:hover { background: #eff6ff; cursor: pointer; }
         .dt-row.active { background: #dbeafe; }
       `}</style>
-
-      {/* ── 툴바 ── */}
-      <div className="flex items-center gap-1.5 mb-2 p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
-        <span className="flex items-center gap-1.5 text-xs font-bold text-rose-700 mr-2">
-          <ShieldAlert className="w-4 h-4" /> 검사요청유형 등록
-        </span>
-        <div className="w-px h-4 bg-slate-200" />
-        <button onClick={handleSearch}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95">
-          <Search className="w-3.5 h-3.5" /> 조회 (F5)
-        </button>
-        <button onClick={handleNew}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 border border-blue-600 rounded text-[11px] font-medium text-white hover:bg-blue-700 shadow-sm active:scale-95">
-          <Plus className="w-3.5 h-3.5" /> 신규 (F2)
-        </button>
-        <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || (!isNew && !selected)}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 disabled:opacity-40">
-          <Save className="w-3.5 h-3.5" /> 저장 (F10)
-        </button>
-        <button onClick={handleDelete} disabled={!selected}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-red-500 hover:bg-red-50 shadow-sm active:scale-95 disabled:opacity-40">
-          <Trash2 className="w-3.5 h-3.5" /> 삭제 (F4)
-        </button>
-        <div className="w-px h-4 bg-slate-200" />
-        <button className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95">
-          <Download className="w-3.5 h-3.5" /> 엑셀다운로드
-        </button>
-        <button onClick={() => qc.invalidateQueries({ queryKey: ['/api/defect-type'] })}
-          className="ml-auto flex items-center gap-1 px-2 py-1 text-[11px] text-slate-500 hover:text-slate-700">
-          <RefreshCw className="w-3 h-3" /> 새로고침
-        </button>
-      </div>
 
       {/* ── 검색 필터 ── */}
       <div className="flex items-center gap-3 mb-2 px-3 py-2 bg-white rounded-lg border border-slate-200 shadow-sm">

@@ -14,6 +14,7 @@ const SmartDashboard  = lazy(() => import('./pages/SmartDashboard'))
 const WorkResult      = lazy(() => import('./pages/WorkResult'))
 const VisionInspection = lazy(() => import('./pages/VisionInspection'))
 const ItemMaster      = lazy(() => import('./pages/ItemMaster'))
+const InspectionRequest = lazy(() => import('./pages/InspectionRequest'))
 const DefectType      = lazy(() => import('./pages/DefectType'))
 const VisionSetting   = lazy(() => import('./pages/VisionSetting'))
 
@@ -27,6 +28,7 @@ const VALID_PATHS = [
   '/sf-production',
   '/sf-vision',
   '/sf-item-master',
+  '/sf-inspection-request',
   '/sf-defect-type',
   '/sf-vision-setting',
 ]
@@ -51,6 +53,7 @@ function PageManager() {
   const [sfProductionLoaded,  setSfProductionLoaded]  = useState(false)
   const [sfVisionLoaded,      setSfVisionLoaded]      = useState(false)
   const [sfItemMasterLoaded,  setSfItemMasterLoaded]  = useState(false)
+  const [sfInspectionRequestLoaded, setSfInspectionRequestLoaded] = useState(false)
   const [sfDefectTypeLoaded,  setSfDefectTypeLoaded]  = useState(false)
   const [sfVisionSettingLoaded, setSfVisionSettingLoaded] = useState(false)
 
@@ -59,6 +62,7 @@ function PageManager() {
     if (path === '/sf-production')   setSfProductionLoaded(true)
     if (path === '/sf-vision')       setSfVisionLoaded(true)
     if (path === '/sf-item-master')  setSfItemMasterLoaded(true)
+    if (path === '/sf-inspection-request') setSfInspectionRequestLoaded(true)
     if (path === '/sf-defect-type')  setSfDefectTypeLoaded(true)
     if (path === '/sf-vision-setting') setSfVisionSettingLoaded(true)
   }, [path])
@@ -122,6 +126,15 @@ function PageManager() {
         <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-item-master' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <ItemMaster />
+          </Suspense>
+        </div>
+      )}
+
+      {/* 스마트팩토리 — 검사요청등록 */}
+      {sfInspectionRequestLoaded && (
+        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-inspection-request' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <InspectionRequest />
           </Suspense>
         </div>
       )}

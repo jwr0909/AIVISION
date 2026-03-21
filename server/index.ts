@@ -39,6 +39,32 @@ app.use('/api/chat', chatRouter)
 // 피드 게시판 API 라우트
 app.use('/api/feed', feedRouter)
 
+// ─── AI 비전 검사 설정 API (파일 저장) ───
+const visionSettingsFile = path.join(__dirname, '..', 'vision_settings.json')
+
+app.get('/api/vision/settings', (req, res) => {
+  try {
+    if (fs.existsSync(visionSettingsFile)) {
+      const data = fs.readFileSync(visionSettingsFile, 'utf-8')
+      res.json(JSON.parse(data))
+    } else {
+      res.json({ config: null, model: null })
+    }
+  } catch (e) {
+    res.status(500).json({ message: '설정 불러오기 실패' })
+  }
+})
+
+app.post('/api/vision/settings', (req, res) => {
+  try {
+    const { config, model } = req.body
+    fs.writeFileSync(visionSettingsFile, JSON.stringify({ config, model }))
+    res.json({ success: true })
+  } catch (e) {
+    res.status(500).json({ message: '설정 저장 실패' })
+  }
+})
+
 // ─── 스마트팩토리 API ───
 
 // 샘플 데이터 생성
@@ -390,6 +416,56 @@ app.delete('/api/item-master/:item_cd', async (req, res) => {
   } catch (e) {
     res.status(500).json({ message: '삭제 실패' })
   }
+})
+
+// ─── 검사요청등록 API ───
+
+// 목록 조회
+app.get('/api/inspection-request', async (req, res) => {
+  try {
+    const { req_date, grp_cd } = req.query
+    let sql = `SELECT * FROM inspection_requests WHERE 1=1`
+    const params: any[] = []
+    let i = 1
+    if (req_date) { sql += ` AND req_date=$${i++}`; params.push(req_date) }
+    if (grp_cd) { sql += ` AND defect_grp_cd=$${i++}`; params.push(grp_cd) }
+    sql += ` ORDER BY req_date DESC, id DESC`
+    res.json(await query(sql, params))
+  } catch (e) { res.status(500).json({ message: '조회 실패' }) }
+})
+
+// 등록
+app.post('/api/inspection-request', async (req, res) => {
+  try {
+    const d = req.body
+    await query(
+      `INSERT INTO inspection_requests (req_date, req_no, defect_grp_cd, manager_id, manager_name, dept_cd, dept_name, remark, items, work_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [d.req_date, d.req_no, d.defect_grp_cd, d.manager_id, d.manager_name, d.dept_cd, d.dept_name, d.remark, JSON.stringify(d.items || []), 'AI_BOT']
+    )
+    res.json({ success: true })
+  } catch (e: any) { res.status(500).json({ message: e.detail ?? '등록 실패' }) }
+})
+
+// 수정
+app.put('/api/inspection-request/:id', async (req, res) => {
+  try {
+    const d = req.body
+    await query(
+      `UPDATE inspection_requests SET req_date=$1, defect_grp_cd=$2, manager_id=$3, manager_name=$4,
+       dept_cd=$5, dept_name=$6, remark=$7, items=$8, work_date=NOW() WHERE id=$9`,
+      [d.req_date, d.defect_grp_cd, d.manager_id, d.manager_name, d.dept_cd, d.dept_name, d.remark, JSON.stringify(d.items || []), req.params.id]
+    )
+    res.json({ success: true })
+  } catch (e: any) { res.status(500).json({ message: e.detail ?? '수정 실패' }) }
+})
+
+// 삭제
+app.delete('/api/inspection-request/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM inspection_requests WHERE id=$1', [req.params.id])
+    res.json({ success: true })
+  } catch (e) { res.status(500).json({ message: '삭제 실패' }) }
 })
 
 // ─── 검사요청유형(불량유형) API ───

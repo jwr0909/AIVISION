@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper";
+import { useToolbarStore } from "@/store/useToolbarStore";
 
 interface ProcessItem {
   prcCd: string;
@@ -451,6 +452,17 @@ export default function WorkResultPage() {
     if (confirm("선택한 작업실적을 삭제하시겠습니까?")) deleteMutation.mutate(editingId);
   };
 
+  useEffect(() => {
+    const { setActions, clearActions } = useToolbarStore.getState();
+    setActions({
+      onSearch: () => refetchList(),
+      onNew: handleNew,
+      onSave: handleSave,
+      onDelete: handleDelete,
+    });
+    return () => clearActions();
+  }, [formData, details, editingId, saveMutation, deleteMutation, refetchList]);
+
   const handleSelectRecord = (record: any) => {
     setEditingId(record.id);
     const d = record.workDate || '';
@@ -544,18 +556,7 @@ export default function WorkResultPage() {
           </div>
           <div className="flex items-center gap-2">
             <Input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="w-32 h-8 text-xs" />
-            <Button size="sm" variant="outline" className="h-8"><Search className="w-3 h-3 mr-1" /> 조회</Button>
-          </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <Button size="sm" variant="outline" className="h-8" onClick={handleNew}><RotateCcw className="w-3 h-3 mr-1" /> 신규</Button>
-            <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={saveMutation.isPending}>
-              <Save className="w-3 h-3 mr-1" />
-              {saveMutation.isPending ? "저장 중..." : (editingId ? "수정" : "저장")}
-            </Button>
-            <Button size="sm" variant="destructive" className="h-8" onClick={handleDelete} disabled={deleteMutation.isPending || !editingId}>
-              <Trash2 className="w-3 h-3 mr-1" /> 삭제
-            </Button>
-            <Button size="sm" variant="outline" className="h-8"><Printer className="w-3 h-3 mr-1" /> 인쇄</Button>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => refetchList()}><Search className="w-3 h-3 mr-1" /> 조회</Button>
           </div>
         </div>
 

@@ -11,7 +11,7 @@ interface SmartFactoryWrapperProps {
  */
 export default function SmartFactoryWrapper({ children }: SmartFactoryWrapperProps) {
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className="bg-white relative w-full">
       {children}
     </div>
   )

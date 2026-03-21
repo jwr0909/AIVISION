@@ -30,12 +30,8 @@ export default function VisionSetting() {
     }
   })
 
-  // 로컬 스토리지에서 저장된 설정 불러오기
   const getSavedConfig = () => {
-    try {
-      const saved = localStorage.getItem('vision_config')
-      if (saved) return JSON.parse(saved)
-    } catch (e) {}
+    // 임시 초기값
     return { intervalSec: 2, threshold: 90, selectedDefects: [], itemName: 'D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL' }
   }
 
@@ -60,26 +56,32 @@ export default function VisionSetting() {
         const loadedNet = await mobilenet.load()
         const loadedClassifier = knnClassifier.create()
         
-        // 브라우저 로컬 스토리지(LocalStorage)에서 기존 학습된 모델 불러오기
-        const savedModelStr = localStorage.getItem('vision_model_knn')
-        if (savedModelStr) {
-          try {
-            const datasetObj = JSON.parse(savedModelStr)
-            const tensorObj: Record<string, tf.Tensor2D> = {}
-            Object.keys(datasetObj).forEach((key) => {
-              tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
-            })
-            loadedClassifier.setClassifierDataset(tensorObj)
-            
-            // 학습 카운트 복원 (텐서 개수 기준)
-            const counts: Record<string, number> = {}
-            Object.keys(tensorObj).forEach((key) => {
-              counts[key] = tensorObj[key].shape[0]
-            })
-            setTrainCounts(counts)
-          } catch (e) {
-            console.error("Failed to restore KNN model", e)
+        // 서버에서 저장된 설정 및 모델 불러오기
+        try {
+          const res = await fetch('/api/vision/settings')
+          if (res.ok) {
+            const data = await res.json()
+            if (data.config) {
+              setConfig(data.config)
+            }
+            if (data.model) {
+              const datasetObj = data.model
+              const tensorObj: Record<string, tf.Tensor2D> = {}
+              Object.keys(datasetObj).forEach((key) => {
+                tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
+              })
+              loadedClassifier.setClassifierDataset(tensorObj)
+              
+              // 학습 카운트 복원 (텐서 개수 기준)
+              const counts: Record<string, number> = {}
+              Object.keys(tensorObj).forEach((key) => {
+                counts[key] = tensorObj[key].shape[0]
+              })
+              setTrainCounts(counts)
+            }
           }
+        } catch (err) {
+          console.error("서버에서 설정 불러오기 실패", err)
         }
 
         setNet(loadedNet)
@@ -118,12 +120,21 @@ export default function VisionSetting() {
   }
 
   // 전체 초기화
-  const handleResetTraining = () => {
+  const handleResetTraining = async () => {
     if (classifier) {
       classifier.clearAllClasses()
     }
     setTrainCounts({ OK: 0 })
-    localStorage.removeItem('vision_model_knn')
+    
+    // 서버 초기화
+    try {
+      await fetch('/api/vision/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config, model: null })
+      })
+    } catch (e) {}
+
     alert("학습 데이터가 모두 초기화되었습니다.")
   }
 
@@ -155,24 +166,34 @@ export default function VisionSetting() {
 
   // 설정 및 모델 저장
   const handleSave = async () => {
-    // 1. 설정 정보 저장
-    localStorage.setItem('vision_config', JSON.stringify(config))
+    let datasetObj: Record<string, number[]> | null = null
     
-    // 2. KNN 모델 저장 (Tensor -> Array 변환 후 저장)
+    // KNN 모델 저장 (Tensor -> Array 변환)
     if (classifier) {
       const dataset = classifier.getClassifierDataset()
-      const datasetObj: Record<string, number[]> = {}
-      
-      const promises = Object.keys(dataset).map(async (key) => {
-        const data = await dataset[key].data()
-        datasetObj[key] = Array.from(data)
-      })
-      await Promise.all(promises)
-      
-      localStorage.setItem('vision_model_knn', JSON.stringify(datasetObj))
+      if (Object.keys(dataset).length > 0) {
+        datasetObj = {}
+        const promises = Object.keys(dataset).map(async (key) => {
+          const data = await dataset[key].data()
+          datasetObj![key] = Array.from(data)
+        })
+        await Promise.all(promises)
+      }
     }
     
-    alert("AI 모델 및 설정이 성공적으로 저장되었습니다.")
+    // 서버에 저장
+    try {
+      const res = await fetch('/api/vision/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config, model: datasetObj })
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      alert("AI 모델 및 설정이 서버에 안전하게 저장되었습니다.")
+    } catch (e) {
+      alert("저장 중 오류가 발생했습니다.")
+      console.error(e)
+    }
   }
 
   return (

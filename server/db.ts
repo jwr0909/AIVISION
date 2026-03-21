@@ -317,6 +317,26 @@ export async function initBoardTables() {
     `)
     console.log('📦 work_result_entries 테이블 준비 완료')
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS inspection_requests (
+        id SERIAL PRIMARY KEY,
+        req_date VARCHAR(10) NOT NULL,
+        req_no VARCHAR(20) NOT NULL UNIQUE,
+        defect_grp_cd VARCHAR(20),
+        manager_id VARCHAR(50),
+        manager_name VARCHAR(50),
+        dept_cd VARCHAR(50),
+        dept_name VARCHAR(50),
+        remark TEXT,
+        items JSONB,
+        work_date TIMESTAMP DEFAULT NOW(),
+        work_id VARCHAR(50) DEFAULT 'SYSTEM'
+      );
+    `)
+    // add column if not exists for already created table
+    await client.query(`ALTER TABLE inspection_requests ADD COLUMN IF NOT EXISTS items JSONB;`)
+    console.log('📦 inspection_requests 테이블 준비 완료')
+
     // ─── 검사요청유형 테이블 ───
     await client.query(`
       CREATE TABLE IF NOT EXISTS defect_type_mst (

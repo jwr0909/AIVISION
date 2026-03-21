@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import Webcam from "react-webcam"
-import { Play, Square, Settings, RefreshCw, Box, AlertTriangle, CheckCircle, UploadCloud, Activity } from "lucide-react"
+import { Play, Square, Settings, RefreshCw, Box, AlertTriangle, CheckCircle, UploadCloud, Activity, ZoomIn, X } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import * as tf from "@tensorflow/tfjs"
 import * as mobilenet from "@tensorflow-models/mobilenet"
@@ -27,37 +27,42 @@ export default function VisionInspectionPage() {
   const [okCount, setOkCount] = useState(0)
   const [ngCount, setNgCount] = useState(0)
   const [efficiency, setEfficiency] = useState(100)
-  const [logs, setLogs] = useState<{ id: number; text: string; type: "ok" | "ng" }[]>([])
+  const [logs, setLogs] = useState<{ id: number; time: string; text: string; type: "ok" | "ng"; conf: string; imageSrc?: string }[]>([])
   const [defectCounts, setDefectCounts] = useState<Record<string, number>>({})
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   // 설정 및 모델 로드
   useEffect(() => {
-    // 1. 설정 로드
-    const savedConfig = localStorage.getItem('vision_config')
-    if (savedConfig) {
-      setConfig(JSON.parse(savedConfig))
-    }
-
-    // 2. 모델 로드
     async function loadModels() {
       try {
         await tf.ready()
         const loadedNet = await mobilenet.load()
         const loadedClassifier = knnClassifier.create()
         
-        const savedModelStr = localStorage.getItem('vision_model_knn')
-        if (savedModelStr) {
-          const datasetObj = JSON.parse(savedModelStr)
-          const tensorObj: Record<string, tf.Tensor2D> = {}
-          Object.keys(datasetObj).forEach((key) => {
-            tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
-          })
-          loadedClassifier.setClassifierDataset(tensorObj)
+        try {
+          const res = await fetch('/api/vision/settings')
+          if (res.ok) {
+            const data = await res.json()
+            if (data.config) {
+              setConfig(data.config)
+            }
+            if (data.model) {
+              const datasetObj = data.model
+              const tensorObj: Record<string, tf.Tensor2D> = {}
+              Object.keys(datasetObj).forEach((key) => {
+                tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
+              })
+              loadedClassifier.setClassifierDataset(tensorObj)
+            }
+          }
+        } catch (e) {
+          console.error("서버 설정 로드 실패", e)
         }
         
         setNet(loadedNet)
         setClassifier(loadedClassifier)
         setIsModelReady(true)
+        setIsLive(true) // 모델이 로드되면 자동으로 검사 시작
       } catch (e) {
         console.error("AI Model load error", e)
       }
@@ -104,14 +109,24 @@ export default function VisionInspectionPage() {
         const conf = result.confidences[predClass] * 100 // % 변환
 
         if (predClass === "OK" || conf < config.threshold) {
-          // 정상 판정 (또는 임계값 미달 시 기본 정상 처리)
+          // 정상 판정 - 로그에는 추가하지 않음
           setOkCount((p) => p + 1)
-          setLogs((p) => [{ id: Date.now(), text: `[OK] 정상 품목 판정 (${conf.toFixed(1)}%)`, type: "ok" }, ...p].slice(0, 50))
         } else {
           // 불량 판정
+          const imageSrc = webcamRef.current?.getScreenshot() || undefined
+          const now = new Date()
+          const timeStr = `${now.getHours() >= 12 ? '오후' : '오전'} ${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+          
           setNgCount((p) => p + 1)
           setDefectCounts((p) => ({ ...p, [predClass]: (p[predClass] || 0) + 1 }))
-          setLogs((p) => [{ id: Date.now(), text: `[NG] ${predClass} 감지 (${conf.toFixed(1)}%)`, type: "ng" }, ...p].slice(0, 50))
+          setLogs((p) => [{ 
+            id: Date.now(), 
+            time: timeStr,
+            text: predClass, 
+            type: "ng", 
+            conf: conf.toFixed(1),
+            imageSrc 
+          }, ...p].slice(0, 50))
         }
 
       } catch (e) {
@@ -302,22 +317,66 @@ export default function VisionInspectionPage() {
                 </div>
               </div>
               
-              <div className="flex-1 border border-slate-200 rounded-lg bg-slate-50 p-2 overflow-auto max-h-[250px]">
+              <div className="flex-1 border border-slate-200 rounded-lg bg-slate-50 p-2 overflow-auto max-h-[300px] hide-scrollbar">
                 {logs.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-[11px] text-slate-400">
-                    대기 중...
+                    대기 중... (정상 판정은 로그에 표시되지 않습니다)
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {logs.map((log) => (
-                      <div key={log.id} className={`anim-fade-in text-[10px] px-2 py-1.5 rounded border ${log.type === 'ok' ? 'bg-white border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700 font-bold'}`}>
-                        {log.text}
+                      <div key={log.id} className="anim-fade-in flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100 hover:bg-white hover:border-slate-200 transition-colors shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]" />
+                          <span className="text-[10px] text-slate-400 font-mono">[{log.time}]</span>
+                          <span className="text-[12px] font-bold text-rose-700">{log.text}</span>
+                          <span className="text-[10px] text-slate-400 ml-1">({log.conf}%)</span>
+                        </div>
+                        {log.imageSrc && (
+                          <div 
+                            className="relative w-8 h-8 rounded border border-slate-200 overflow-hidden cursor-pointer group bg-black"
+                            onClick={() => setSelectedImage(log.imageSrc!)}
+                          >
+                            <img src={log.imageSrc} alt="Defect" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ZoomIn className="w-3 h-3 text-white" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* 이미지 확대 모달 */}
+            {selectedImage && (
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                onClick={() => setSelectedImage(null)}
+              >
+                <div 
+                  className="relative max-w-4xl w-full bg-white rounded-xl shadow-2xl overflow-hidden anim-fade-in"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="absolute top-3 right-3 z-10">
+                    <button 
+                      onClick={() => setSelectedImage(null)}
+                      className="p-1.5 bg-black/50 hover:bg-red-500 text-white rounded-full backdrop-blur transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-1">
+                    <img src={selectedImage} alt="Enlarged defect capture" className="w-full h-auto object-contain max-h-[80vh] rounded-lg" />
+                  </div>
+                  <div className="p-3 bg-slate-50 border-t border-slate-100 text-center text-xs font-bold text-rose-600">
+                    불량 감지 캡처 화면
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 검사 제어 버튼 */}
             <div className="flex flex-col gap-2">

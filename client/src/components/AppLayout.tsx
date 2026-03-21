@@ -2,20 +2,22 @@ import React, { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Search, PanelLeftClose, PanelLeft, Plus, Save, Trash2, Printer, FileDown, FileUp, X,
-  Home, FileText, Image as ImageIcon, Video, MessageSquare, LayoutDashboard, Factory, Eye, Settings, Package, ShieldAlert
+  Home, FileText, Image as ImageIcon, Video, MessageSquare, LayoutDashboard, Factory, Eye, Settings, Package, ShieldAlert, ClipboardList
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useTabStore } from '../store/useTabStore'
+import { useToolbarStore } from '../store/useToolbarStore'
 import FloatingChat from './FloatingChat'
 
 const menuItems = [
   { group: '스마트팩토리', items: [
     { icon: LayoutDashboard, label: '대시보드', path: '/sf-dashboard' },
-    { icon: Factory, label: '작업실적입력', path: '/sf-production' },
-    { icon: Eye, label: 'AI 비전 검사', path: '/sf-vision' },
-    { icon: Settings, label: '비전 설정', path: '/sf-vision-setting' },
     { icon: Package, label: '품목등록', path: '/sf-item-master' },
+    { icon: ClipboardList, label: '검사요청등록', path: '/sf-inspection-request' },
     { icon: ShieldAlert, label: '검사요청유형', path: '/sf-defect-type' },
+    { icon: Settings, label: '비전 설정', path: '/sf-vision-setting' },
+    { icon: Eye, label: 'AI 비전 검사', path: '/sf-vision' },
+    { icon: Factory, label: '작업실적입력', path: '/sf-production' },
   ]},
   { group: '기본메뉴', items: [
     { icon: Home, label: '홈', path: '/' },
@@ -63,6 +65,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       navigate(newTabs[newTabs.length - 1].path)
     }
   }
+
+  // 글로벌 단축키 처리
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const state = useToolbarStore.getState()
+      
+      // F5: 조회
+      if (e.key === 'F5') {
+        e.preventDefault()
+        if (state.onSearch) state.onSearch()
+      }
+      // F2: 신규
+      else if (e.key === 'F2') {
+        e.preventDefault()
+        if (state.onNew) state.onNew()
+      }
+      // F10: 저장
+      else if (e.key === 'F10') {
+        e.preventDefault()
+        if (state.onSave) state.onSave()
+      }
+      // F4: 삭제
+      else if (e.key === 'F4') {
+        e.preventDefault()
+        if (state.onDelete) state.onDelete()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <div className="flex h-screen w-screen bg-[#F1F5F9] overflow-hidden sf-light text-slate-800">
@@ -129,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
         
         {/* Top Header */}
         <header className="h-14 bg-[#0F172A] flex items-center px-4 shrink-0 justify-between">
@@ -148,13 +181,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Global Toolbar */}
         <div className="h-12 bg-white flex items-center px-3 gap-1 shrink-0 shadow-sm z-10 border-b border-slate-200">
-          <ToolbarButton icon={<Search className="w-4 h-4" />} label="조회 (Ctrl+F)" />
+          {/* We only enable buttons if there's a registered handler, or we can always show them but disable if no handler */}
+          <ToolbarButton icon={<Search className="w-4 h-4" />} label="조회 (F5)" onClick={() => {
+             const state = useToolbarStore.getState()
+             if (state.onSearch) state.onSearch()
+          }} />
           <div className="w-px h-4 bg-slate-200 mx-1" />
-          <ToolbarButton icon={<Plus className="w-4 h-4" />} label="신규 (Ctrl+A)" />
-          <ToolbarButton icon={<Save className="w-4 h-4" />} label="저장 (Ctrl+S)" />
-          <ToolbarButton icon={<Trash2 className="w-4 h-4" />} label="삭제 (Ctrl+D)" />
+          <ToolbarButton icon={<Plus className="w-4 h-4" />} label="신규 (F2)" onClick={() => {
+             const state = useToolbarStore.getState()
+             if (state.onNew) state.onNew()
+          }} />
+          <ToolbarButton icon={<Save className="w-4 h-4" />} label="저장 (F10)" onClick={() => {
+             const state = useToolbarStore.getState()
+             if (state.onSave) state.onSave()
+          }} />
+          <ToolbarButton icon={<Trash2 className="w-4 h-4" />} label="삭제 (F4)" onClick={() => {
+             const state = useToolbarStore.getState()
+             if (state.onDelete) state.onDelete()
+          }} />
           <div className="w-px h-4 bg-slate-200 mx-1" />
-          <ToolbarButton icon={<Printer className="w-4 h-4" />} label="인쇄 (Ctrl+P)" disabled />
+          <ToolbarButton icon={<Printer className="w-4 h-4" />} label="인쇄 (F9)" disabled />
           <ToolbarButton icon={<FileDown className="w-4 h-4" />} label="엑셀변환 (Ctrl+E)" className="text-emerald-600 hover:bg-emerald-50" />
           <ToolbarButton icon={<FileUp className="w-4 h-4" />} label="엑셀입력 (Ctrl+H)" disabled />
         </div>
@@ -188,10 +234,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto bg-[#F8FAFC] p-4 lg:p-5 relative">
-          <div className="h-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-             {children}
-          </div>
+        <div className="flex-1 overflow-y-auto bg-white relative">
+           {children}
         </div>
 
       </main>
@@ -201,10 +245,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ToolbarButton({ icon, label, disabled, className }: { icon: React.ReactNode, label: string, disabled?: boolean, className?: string }) {
+function ToolbarButton({ icon, label, disabled, className, onClick }: { icon: React.ReactNode, label: string, disabled?: boolean, className?: string, onClick?: () => void }) {
   return (
     <button 
       disabled={disabled}
+      onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all",
         disabled 

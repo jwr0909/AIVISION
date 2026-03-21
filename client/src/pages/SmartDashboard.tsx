@@ -9,7 +9,7 @@ import {
   TrendingUp, TrendingDown, Factory, Eye, Clock, ChevronLeft, ChevronRight,
   Search, Save, Trash2, Printer, FileSpreadsheet, Download, LogIn, LogOut,
   Coffee, Target, Shield, Zap, Bell, User, BarChart2, Plus,
-  ShoppingCart, FileText, Truck, CreditCard, RotateCcw
+  ShoppingCart, FileText, Truck, CreditCard, RotateCcw, Package, ShieldAlert
 } from "lucide-react";
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper";
 
@@ -119,7 +119,8 @@ function MiniCalendar() {
 function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
-    if (!value) return;
+    if (value === undefined || value === null) return;
+    if (value === 0) { setDisplay(0); return; }
     let start = 0;
     const step = Math.ceil(value / 30);
     const timer = setInterval(() => {
@@ -130,20 +131,6 @@ function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string
     return () => clearInterval(timer);
   }, [value]);
   return <>{display.toLocaleString()}{suffix}</>;
-}
-
-/* ─────────────────── 툴바 버튼 ─────────────────── */
-function ToolBtn({ icon: Icon, label, variant = "default" }: { icon: React.ElementType; label: string; variant?: "default"|"primary"|"danger" }) {
-  const cls = {
-    default: "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
-    primary: "bg-blue-600 border border-blue-600 text-white hover:bg-blue-700",
-    danger:  "bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200",
-  }[variant];
-  return (
-    <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium shadow-sm transition-all active:scale-95 ${cls}`}>
-      <Icon className="w-3.5 h-3.5" /> {label}
-    </button>
-  );
 }
 
 /* ─────────────────── 메인 컴포넌트 ─────────────────── */
@@ -167,6 +154,30 @@ export default function SmartDashboard() {
   const { data: stats } = useQuery<Stats>({
     queryKey: ["/api/vision/stats"],
     refetchInterval: 5000,
+  });
+
+  const { data: items = [] } = useQuery({
+    queryKey: ["/api/item-master"],
+    queryFn: async () => {
+      const res = await fetch("/api/item-master");
+      return res.json();
+    }
+  });
+
+  const { data: defectTypes = [] } = useQuery({
+    queryKey: ["/api/defect-type"],
+    queryFn: async () => {
+      const res = await fetch("/api/defect-type");
+      return res.json();
+    }
+  });
+
+  const { data: workResults = [] } = useQuery({
+    queryKey: ["/api/work-result"],
+    queryFn: async () => {
+      const res = await fetch("/api/work-result");
+      return res.json();
+    }
   });
 
   const seedMutation = useMutation({
@@ -197,7 +208,8 @@ export default function SmartDashboard() {
 
   return (
     <SmartFactoryWrapper>
-      <style>{`
+      <div className="flex flex-col p-3 gap-3">
+        <style>{`
         @keyframes fadeSlideUp {
           from { opacity:0; transform:translateY(12px); }
           to   { opacity:1; transform:translateY(0); }
@@ -230,20 +242,8 @@ export default function SmartDashboard() {
         }
       `}</style>
 
-      {/* ── 툴바 ── */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-3 p-2 bg-white rounded-xl border border-slate-200 shadow-sm anim-up" style={{animationDelay:".0s"}}>
-        <ToolBtn icon={Search}        label="조회 (F5)"     />
-        <ToolBtn icon={Plus}          label="신규 (F2)"     variant="primary" />
-        <ToolBtn icon={Save}          label="저장 (F10)"    />
-        <ToolBtn icon={Trash2}        label="삭제 (F4)"     variant="danger" />
-        <div className="w-px h-5 bg-slate-200 mx-0.5" />
-        <ToolBtn icon={Printer}       label="인쇄 (F9)"     />
-        <ToolBtn icon={FileSpreadsheet} label="엑셀변환 (Ctrl+E)" />
-        <ToolBtn icon={Download}      label="엑셀입력 (Ctrl+H)" />
-      </div>
-
       {/* ── 사용자 정보 바 ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-3 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-sm anim-up" style={{animationDelay:".05s"}}>
+      <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-sm anim-up" style={{animationDelay:".05s"}}>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm">
             <User className="w-4 h-4 text-white" />
@@ -252,18 +252,6 @@ export default function SmartDashboard() {
             <div className="text-xs font-bold text-slate-800">관리자님</div>
             <div className="text-[10px] text-slate-400">사업장: 품질재단실습</div>
           </div>
-        </div>
-        <div className="h-5 w-px bg-slate-200" />
-        <div className="flex gap-1.5">
-          <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors active:scale-95">
-            <LogIn className="w-3 h-3" /> 출근
-          </button>
-          <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[11px] font-semibold hover:bg-red-100 transition-colors active:scale-95">
-            <LogOut className="w-3 h-3" /> 퇴근
-          </button>
-          <button className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold hover:bg-amber-100 transition-colors active:scale-95">
-            <Coffee className="w-3 h-3" /> 휴가
-          </button>
         </div>
         <div className="h-5 w-px bg-slate-200" />
         <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -284,13 +272,13 @@ export default function SmartDashboard() {
       </div>
 
       {/* ── KPI 카드 5개 ── */}
-      <div className="grid grid-cols-5 gap-3 mb-3">
+      <div className="grid grid-cols-5 gap-3">
         {[
-          { id: 1, title: "ORDER 현황", val1: 3574, val2: 21255489, icon: ShoppingCart, bg: "from-[#F0F7FF] to-[#E0F0FF]/50", numColor: "from-blue-500 to-indigo-500", subColor: "text-blue-400" },
-          { id: 2, title: "수출 신고 현황", val1: 0, val2: 0, icon: FileText, bg: "from-[#F4FAF6] to-[#E6F5EA]/50", numColor: "from-emerald-400 to-green-500", subColor: "text-emerald-500" },
-          { id: 3, title: "납품 현황", val1: 0, val2: 0, icon: Truck, bg: "from-[#FFFDF0] to-[#FFF8D6]/50", numColor: "from-amber-400 to-orange-500", subColor: "text-amber-500" },
-          { id: 4, title: "매출 마감 현황", val1: 11334, val2: 6487173, icon: CreditCard, bg: "from-[#F9F5FF] to-[#F3EBFF]/50", numColor: "from-purple-500 to-fuchsia-500", subColor: "text-purple-400" },
-          { id: 5, title: "반입 현황", val1: 0, val2: 0, icon: RotateCcw, bg: "from-[#FFF5F7] to-[#FFEBF0]/50", numColor: "from-rose-400 to-pink-500", subColor: "text-rose-400" },
+          { id: 1, title: "품목 등록 현황", val1: items.length, val2: items.filter((i:any)=>i.use_yn==='Y').length, subLabel: "사용중 품목", icon: Package, bg: "from-[#F0F7FF] to-[#E0F0FF]/50", numColor: "from-blue-500 to-indigo-500", subColor: "text-blue-400", isRate: false },
+          { id: 2, title: "검사요청유형 현황", val1: defectTypes.length, val2: defectTypes.filter((d:any)=>d.use_yn==='Y').length, subLabel: "사용중 유형", icon: ShieldAlert, bg: "from-[#F4FAF6] to-[#E6F5EA]/50", numColor: "from-emerald-400 to-green-500", subColor: "text-emerald-500", isRate: false },
+          { id: 3, title: "작업실적 현황", val1: workResults.length, val2: workResults.reduce((acc:number, cur:any) => acc + (Number(cur.totalQty) || 0), 0), subLabel: "총 생산수량", icon: Factory, bg: "from-[#FFFDF0] to-[#FFF8D6]/50", numColor: "from-amber-400 to-orange-500", subColor: "text-amber-500", isRate: false },
+          { id: 4, title: "AI 비전 검사", val1: total, val2: ok, subLabel: "양품 수량", icon: Eye, bg: "from-[#F9F5FF] to-[#F3EBFF]/50", numColor: "from-purple-500 to-fuchsia-500", subColor: "text-purple-400", isRate: false },
+          { id: 5, title: "불량 검출 현황", val1: ng, val2: ngRate, subLabel: "불량률", icon: AlertTriangle, bg: "from-[#FFF5F7] to-[#FFEBF0]/50", numColor: "from-rose-400 to-pink-500", subColor: "text-rose-400", isRate: true },
         ].map((kpi, i) => (
           <div key={i} className="anim-up card-hover flex flex-col h-[180px]" style={{animationDelay:`${0.1 + i * 0.05}s`}}>
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full relative">
@@ -317,8 +305,11 @@ export default function SmartDashboard() {
                   <div className="w-12 h-px bg-slate-300/40 my-2 z-10" />
                   
                   {/* Sub Number */}
-                  <div className={`text-[14px] font-bold ${kpi.subColor} z-10`}>
-                    <AnimatedNumber value={kpi.val2} />
+                  <div className={`text-[12px] font-bold ${kpi.subColor} z-10 flex items-center gap-1.5`}>
+                    <span className="text-[10px] opacity-70 font-medium">{kpi.subLabel}</span>
+                    <span>
+                      {kpi.isRate ? `${kpi.val2}%` : <AnimatedNumber value={Number(kpi.val2)} />}
+                    </span>
                   </div>
                   
                   {/* Background Icon */}
@@ -330,11 +321,11 @@ export default function SmartDashboard() {
       </div>
 
       {/* ── 차트 섹션 ── */}
-      <div className="grid grid-cols-12 gap-3 mb-3">
+      <div className="grid grid-cols-12 gap-3">
 
         {/* 설비 생산 현황 (대형 영역 차트) */}
         <div className="col-span-12 lg:col-span-7 anim-up flex flex-col" style={{animationDelay:".35s"}}>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden flex-1 flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col h-full">
             <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 shrink-0" />
             <div className="p-4 flex-1 flex flex-col">
               <div className="flex items-center justify-between mb-3 shrink-0">
@@ -351,7 +342,7 @@ export default function SmartDashboard() {
                   <span className="live-dot w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" /> 실시간
                 </span>
               </div>
-              <div className="flex-1 min-h-[220px]">
+              <div className="min-h-[260px] h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={productionData} margin={{ top:4, right:8, left:-8, bottom:0 }}>
                   <defs>
@@ -425,7 +416,7 @@ export default function SmartDashboard() {
 
           {/* 캘린더 */}
           <div className="anim-up flex-1 flex flex-col" style={{animationDelay:".41s"}}>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover flex-1 flex flex-col">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover flex flex-col h-full">
               <div className="h-1 bg-gradient-to-r from-violet-500 to-purple-600 shrink-0" />
               <div className="p-4 flex-1 flex flex-col justify-center">
                 <div className="relative mb-3">
@@ -532,7 +523,7 @@ export default function SmartDashboard() {
       </div>
 
       {/* ── 하단 액션 바 ── */}
-      <div className="flex items-center justify-between mt-3 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-sm anim-in" style={{animationDelay:".55s"}}>
+      <div className="flex items-center justify-between mt-1 px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-sm anim-in" style={{animationDelay:".55s"}}>
         <div className="flex items-center gap-2">
           <button
             onClick={() => seedMutation.mutate()}
@@ -552,6 +543,7 @@ export default function SmartDashboard() {
         <div className="text-[10px] text-slate-400">
           마지막 업데이트: {now.toLocaleTimeString("ko-KR")} · 자동 새로고침 5초마다
         </div>
+      </div>
       </div>
     </SmartFactoryWrapper>
   );

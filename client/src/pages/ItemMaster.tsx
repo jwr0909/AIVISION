@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Save, Trash2, Download, RefreshCw, ChevronDown, Package } from 'lucide-react'
 import SmartFactoryWrapper from '@/components/SmartFactoryWrapper'
+import { useToolbarStore } from '@/store/useToolbarStore'
 
 /* ─────────────────── 타입 ─────────────────── */
 type Item = {
@@ -137,6 +138,17 @@ export default function ItemMaster() {
   }
   const handleSearch = () => setSearch({ item_cls: filter.item_cls, keyword: filter.keyword, std: filter.std })
 
+  useEffect(() => {
+    const { setActions, clearActions } = useToolbarStore.getState()
+    setActions({
+      onSearch: handleSearch,
+      onNew: handleNew,
+      onSave: () => saveMut.mutate(),
+      onDelete: handleDelete,
+    })
+    return () => clearActions()
+  }, [filter, isNew, selected, form])
+
   return (
     <SmartFactoryWrapper>
       <style>{`
@@ -145,40 +157,6 @@ export default function ItemMaster() {
         .tab-btn { border-bottom: 2px solid transparent; }
         .tab-btn.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 600; }
       `}</style>
-
-      {/* ── 툴바 ── */}
-      <div className="flex items-center gap-1.5 mb-2 p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
-        <span className="flex items-center gap-1.5 text-xs font-bold text-blue-700 mr-2">
-          <Package className="w-4 h-4" /> 품목등록
-        </span>
-        <div className="w-px h-4 bg-slate-200" />
-        <button onClick={handleSearch} className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95">
-          <Search className="w-3.5 h-3.5" /> 조회 (F5)
-        </button>
-        <button onClick={handleNew} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 border border-blue-600 rounded text-[11px] font-medium text-white hover:bg-blue-700 shadow-sm active:scale-95">
-          <Plus className="w-3.5 h-3.5" /> 신규 (F2)
-        </button>
-        <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || (!isNew && !selected)}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 disabled:opacity-40">
-          <Save className="w-3.5 h-3.5" /> 저장 (F10)
-        </button>
-        <button onClick={handleDelete} disabled={!selected && !isNew}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-red-500 hover:bg-red-50 shadow-sm active:scale-95 disabled:opacity-40">
-          <Trash2 className="w-3.5 h-3.5" /> 삭제 (F4)
-        </button>
-        <div className="w-px h-4 bg-slate-200" />
-        <button className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-[11px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95">
-          <Download className="w-3.5 h-3.5" /> 엑세다운로드
-        </button>
-        <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer ml-1">
-          <Checkbox checked={filter.use_yn} onChange={v => setFilter(f => ({ ...f, use_yn: v }))} />
-          미사용포함
-        </label>
-        <button onClick={() => qc.invalidateQueries({ queryKey: ['/api/item-master'] })}
-          className="ml-auto flex items-center gap-1 px-2 py-1 text-[11px] text-slate-500 hover:text-slate-700">
-          <RefreshCw className="w-3 h-3" /> 새로고침
-        </button>
-      </div>
 
       {/* ── 검색 필터 ── */}
       <div className="flex items-center gap-3 mb-2 px-3 py-2 bg-white rounded-lg border border-slate-200 shadow-sm">
@@ -207,7 +185,11 @@ export default function ItemMaster() {
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder="규격" className="border border-slate-200 rounded px-2 py-0.5 text-[11px] w-24 focus:outline-none focus:border-blue-400" />
         </div>
-        <button onClick={handleSearch} className="px-3 py-0.5 bg-blue-600 text-white text-[11px] rounded font-medium hover:bg-blue-700 active:scale-95">
+        <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer ml-2">
+          <Checkbox checked={filter.use_yn} onChange={v => setFilter(f => ({ ...f, use_yn: v }))} />
+          미사용포함
+        </label>
+        <button onClick={handleSearch} className="ml-auto px-4 py-1 bg-blue-600 text-white text-[11px] rounded font-medium hover:bg-blue-700 active:scale-95">
           조회
         </button>
       </div>
