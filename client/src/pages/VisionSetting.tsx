@@ -1,32 +1,43 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useQuery } from "@tanstack/react-query"
 import Webcam from "react-webcam"
-import { Play, Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, Layers } from "lucide-react"
+import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import * as tf from "@tensorflow/tfjs"
 import * as mobilenet from "@tensorflow-models/mobilenet"
 import * as knnClassifier from "@tensorflow-models/knn-classifier"
 
-/* ─────────────────── 더미/상수 데이터 ─────────────────── */
-const ALL_DEFECTS = [
-  "가공불량(셋팅)", "가공불량(양면삭)", "가공불량(보링)", "가공불량(드릴)",
-  "가공불량(좌삭)", "조립불량", "외관불량(형상)", "연마불량",
-  "찍힘불량", "버핑불량", "가공불량(와이어커팅)", "고주파 시편",
-  "고주파 크랙", "열처리 셋팅불량", "소재크랙", "스프레이켄칭크랙",
-  "소재부족"
-]
+/* ─────────────────── 타입 ─────────────────── */
+type DefectType = {
+  defect_cd: string
+  defect_name: string
+  use_yn: string
+}
 
 export default function VisionSetting() {
   const webcamRef = useRef<Webcam>(null)
   
-  // 상태 관리
-  const [selectedDefects, setSelectedDefects] = useState<string[]>([
-    "가공불량(셋팅)", "가공불량(양면삭)", "가공불량(보링)", "가공불량(드릴)",
-    "가공불량(좌삭)", "조립불량", "외관불량(형상)", "연마불량", "찍힘불량", "버핑불량",
-    "가공불량(와이어커팅)", "고주파 시편", "고주파 크랙", "열처리 셋팅불량", "소재크랙", "스프레이켄칭크랙", "소재부족"
-  ])
-  const [intervalSec, setIntervalSec] = useState<number>(2)
-  const [threshold, setThreshold] = useState<number>(90)
-  
+  // DB에서 불량유형 목록 가져오기
+  const { data: allDefects = [] } = useQuery<DefectType[]>({
+    queryKey: ['/api/defect-type'],
+    queryFn: async () => {
+      const res = await fetch('/api/defect-type')
+      const data = await res.json()
+      // 사용중인 불량유형만 필터링
+      return data.filter((d: any) => d.use_yn === 'Y')
+    }
+  })
+
+  // 로컬 스토리지에서 저장된 설정 불러오기
+  const getSavedConfig = () => {
+    try {
+      const saved = localStorage.getItem('vision_config')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {}
+    return { intervalSec: 2, threshold: 90, selectedDefects: [] }
+  }
+
+  const [config, setConfig] = useState(getSavedConfig())
   const [dept, setDept] = useState("관리부")
   const [itemName, setItemName] = useState("D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL")
   
@@ -45,6 +56,29 @@ export default function VisionSetting() {
         await tf.ready()
         const loadedNet = await mobilenet.load()
         const loadedClassifier = knnClassifier.create()
+        
+        // 브라우저 로컬 스토리지(LocalStorage)에서 기존 학습된 모델 불러오기
+        const savedModelStr = localStorage.getItem('vision_model_knn')
+        if (savedModelStr) {
+          try {
+            const datasetObj = JSON.parse(savedModelStr)
+            const tensorObj: Record<string, tf.Tensor2D> = {}
+            Object.keys(datasetObj).forEach((key) => {
+              tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
+            })
+            loadedClassifier.setClassifierDataset(tensorObj)
+            
+            // 학습 카운트 복원 (텐서 개수 기준)
+            const counts: Record<string, number> = {}
+            Object.keys(tensorObj).forEach((key) => {
+              counts[key] = tensorObj[key].shape[0]
+            })
+            setTrainCounts(counts)
+          } catch (e) {
+            console.error("Failed to restore KNN model", e)
+          }
+        }
+
         setNet(loadedNet)
         setClassifier(loadedClassifier)
         setIsModelLoading(false)
@@ -55,20 +89,23 @@ export default function VisionSetting() {
     loadModels()
   }, [])
 
+  // 처음 DB 로드 시, 로컬 스토리지에 설정된 불량유형이 없으면 DB 전체를 기본값으로 세팅
+  useEffect(() => {
+    if (allDefects.length > 0 && config.selectedDefects.length === 0) {
+      const names = allDefects.map(d => d.defect_name)
+      setConfig(prev => ({ ...prev, selectedDefects: names }))
+    }
+  }, [allDefects])
+
   // 학습 함수
   const handleTrain = async (className: string) => {
     if (!net || !classifier || !webcamRef.current) return
     const video = webcamRef.current.video
     if (!video || video.readyState !== 4) return
 
-    // 웹캠 캡처 후 텐서 변환
     const img = tf.browser.fromPixels(video)
-    // MobileNet 특성 추출
     const activation = net.infer(img, true)
-    // KNN 학습 추가
     classifier.addExample(activation, className)
-
-    // 메모리 정리
     img.dispose()
 
     setTrainCounts((prev) => ({
@@ -83,17 +120,39 @@ export default function VisionSetting() {
       classifier.clearAllClasses()
     }
     setTrainCounts({ OK: 0 })
+    localStorage.removeItem('vision_model_knn')
     alert("학습 데이터가 모두 초기화되었습니다.")
   }
 
   // 불량 유형 선택 추가/삭제
-  const toggleDefect = (defect: string) => {
-    setSelectedDefects(prev => 
-      prev.includes(defect) ? prev.filter(d => d !== defect) : [...prev, defect]
-    )
+  const toggleDefect = (defectName: string) => {
+    setConfig(prev => ({
+      ...prev,
+      selectedDefects: prev.selectedDefects.includes(defectName)
+        ? prev.selectedDefects.filter(d => d !== defectName)
+        : [...prev.selectedDefects, defectName]
+    }))
   }
 
-  const handleSave = () => {
+  // 설정 및 모델 저장
+  const handleSave = async () => {
+    // 1. 설정 정보 저장
+    localStorage.setItem('vision_config', JSON.stringify(config))
+    
+    // 2. KNN 모델 저장 (Tensor -> Array 변환 후 저장)
+    if (classifier) {
+      const dataset = classifier.getClassifierDataset()
+      const datasetObj: Record<string, number[]> = {}
+      
+      const promises = Object.keys(dataset).map(async (key) => {
+        const data = await dataset[key].data()
+        datasetObj[key] = Array.from(data)
+      })
+      await Promise.all(promises)
+      
+      localStorage.setItem('vision_model_knn', JSON.stringify(datasetObj))
+    }
+    
     alert("AI 모델 및 설정이 성공적으로 저장되었습니다.")
   }
 
@@ -135,7 +194,7 @@ export default function VisionSetting() {
               </div>
 
               {isModelLoading && (
-                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-white z-10">
                   <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
                   <p className="text-sm font-bold tracking-wide">AI 모델 로딩 중...</p>
                 </div>
@@ -175,8 +234,8 @@ export default function VisionSetting() {
                     </div>
                   </button>
 
-                  {/* NG 버튼들 */}
-                  {selectedDefects.map(defect => (
+                  {/* NG 버튼들 (설정에서 선택된 유형만 표시) */}
+                  {config.selectedDefects.map(defect => (
                     <button 
                       key={defect}
                       onClick={() => handleTrain(defect)}
@@ -210,12 +269,12 @@ export default function VisionSetting() {
             </div>
             
             <div className="p-4 flex-1 overflow-auto space-y-5">
-              {/* 불량 유형 추가 Select */}
+              {/* 불량 유형 추가 Select (DB에서 가져온 목록) */}
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1.5">검사할 불량 유형 추가</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1.5">검사할 불량 유형 추가 (DB연동)</label>
                 <select 
                   onChange={(e) => {
-                    if (e.target.value && !selectedDefects.includes(e.target.value)) {
+                    if (e.target.value && !config.selectedDefects.includes(e.target.value)) {
                       toggleDefect(e.target.value)
                     }
                     e.target.value = ""
@@ -223,13 +282,15 @@ export default function VisionSetting() {
                   className="w-full border border-slate-200 rounded p-2 text-[12px] text-slate-600 focus:outline-none focus:border-indigo-400 mb-3"
                 >
                   <option value="">유형 선택...</option>
-                  {ALL_DEFECTS.filter(d => !selectedDefects.includes(d)).map(d => (
-                    <option key={d} value={d}>{d}</option>
+                  {allDefects
+                    .filter((d: DefectType) => !config.selectedDefects.includes(d.defect_name))
+                    .map((d: DefectType) => (
+                      <option key={d.defect_cd} value={d.defect_name}>{d.defect_name}</option>
                   ))}
                 </select>
 
                 <div className="flex flex-wrap gap-1.5 max-h-[150px] overflow-y-auto">
-                  {selectedDefects.map(defect => (
+                  {config.selectedDefects.map(defect => (
                     <div key={defect} className="flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-[10px]">
                       {defect}
                       <button onClick={() => toggleDefect(defect)} className="hover:bg-indigo-200 rounded p-0.5 ml-1 transition-colors">
@@ -244,12 +305,12 @@ export default function VisionSetting() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1.5">검사 주기 (초)</label>
-                  <input type="number" value={intervalSec} onChange={e => setIntervalSec(Number(e.target.value))} 
+                  <input type="number" value={config.intervalSec} onChange={e => setConfig(p => ({ ...p, intervalSec: Number(e.target.value) }))} 
                     className="w-full border border-slate-200 rounded p-2 text-center text-[12px] font-bold focus:outline-none focus:border-indigo-400" />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1.5">판정 임계값 (%)</label>
-                  <input type="number" value={threshold} onChange={e => setThreshold(Number(e.target.value))} 
+                  <input type="number" value={config.threshold} onChange={e => setConfig(p => ({ ...p, threshold: Number(e.target.value) }))} 
                     className="w-full border border-slate-200 rounded p-2 text-center text-[12px] font-bold focus:outline-none focus:border-indigo-400" />
                 </div>
               </div>
@@ -281,7 +342,11 @@ export default function VisionSetting() {
             
             {/* 하단 저장 버튼 */}
             <div className="p-4 border-t border-slate-100 bg-slate-50 shrink-0">
-              <button onClick={handleSave} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[13px] rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95">
+              <button 
+                onClick={handleSave} 
+                disabled={isModelLoading}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[13px] rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              >
                 <Save className="w-4 h-4" /> AI 모델 및 설정 저장
               </button>
             </div>
@@ -291,3 +356,4 @@ export default function VisionSetting() {
     </SmartFactoryWrapper>
   )
 }
+

@@ -1,29 +1,68 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import Webcam from "react-webcam"
 import { Play, Square, Settings, RefreshCw, Box, AlertTriangle, CheckCircle, UploadCloud, Activity } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
-
-/* ─────────────────── 더미/상수 데이터 ─────────────────── */
-const DEFECT_TYPES = [
-  "가공불량(셋팅)", "가공불량(양면삭)", "가공불량(보링)", "가공불량(드릴)",
-  "가공불량(좌삭)", "조립불량", "외관불량(형상)", "연마불량",
-  "찍힘불량", "버핑불량", "가공불량(와이어커팅)", "고주파 시편",
-  "고주파 크랙", "열처리 셋팅불량", "소재크랙", "스프레이켄칭크랙",
-  "소재부족"
-]
+import * as tf from "@tensorflow/tfjs"
+import * as mobilenet from "@tensorflow-models/mobilenet"
+import * as knnClassifier from "@tensorflow-models/knn-classifier"
 
 export default function VisionInspectionPage() {
   const [isLive, setIsLive] = useState(false)
   const webcamRef = useRef<Webcam>(null)
+
+  // 설정값
+  const [config, setConfig] = useState({
+    intervalSec: 2,
+    threshold: 90,
+    selectedDefects: [] as string[]
+  })
+
+  // AI 모델
+  const [classifier, setClassifier] = useState<knnClassifier.KNNClassifier | null>(null)
+  const [net, setNet] = useState<mobilenet.MobileNet | null>(null)
+  const [isModelReady, setIsModelReady] = useState(false)
 
   // 검사 현황 상태
   const [okCount, setOkCount] = useState(0)
   const [ngCount, setNgCount] = useState(0)
   const [efficiency, setEfficiency] = useState(100)
   const [logs, setLogs] = useState<{ id: number; text: string; type: "ok" | "ng" }[]>([])
-  
-  // 불량 유형별 건수
   const [defectCounts, setDefectCounts] = useState<Record<string, number>>({})
+
+  // 설정 및 모델 로드
+  useEffect(() => {
+    // 1. 설정 로드
+    const savedConfig = localStorage.getItem('vision_config')
+    if (savedConfig) {
+      setConfig(JSON.parse(savedConfig))
+    }
+
+    // 2. 모델 로드
+    async function loadModels() {
+      try {
+        await tf.ready()
+        const loadedNet = await mobilenet.load()
+        const loadedClassifier = knnClassifier.create()
+        
+        const savedModelStr = localStorage.getItem('vision_model_knn')
+        if (savedModelStr) {
+          const datasetObj = JSON.parse(savedModelStr)
+          const tensorObj: Record<string, tf.Tensor2D> = {}
+          Object.keys(datasetObj).forEach((key) => {
+            tensorObj[key] = tf.tensor2d(datasetObj[key], [datasetObj[key].length / 1024, 1024])
+          })
+          loadedClassifier.setClassifierDataset(tensorObj)
+        }
+        
+        setNet(loadedNet)
+        setClassifier(loadedClassifier)
+        setIsModelReady(true)
+      } catch (e) {
+        console.error("AI Model load error", e)
+      }
+    }
+    loadModels()
+  }, [])
 
   // 초기화 함수
   const handleReset = () => {
@@ -35,28 +74,53 @@ export default function VisionInspectionPage() {
     setIsLive(false)
   }
 
-  // AI 검사 시작/중지 토글
   const toggleInspection = () => {
+    if (!isLive && (!classifier || Object.keys(classifier.getClassifierDataset()).length === 0)) {
+      alert("학습된 AI 모델이 없습니다. 먼저 '비전 설정' 화면에서 데이터를 학습시켜주세요.")
+      return
+    }
     setIsLive((prev) => !prev)
   }
 
-  // 모의 검사 로직 (isLive가 true일 때 주기적으로 실행)
+  // 실시간 AI 검사 로직
   useEffect(() => {
-    if (!isLive) return
-    const interval = setInterval(() => {
-      const isDefect = Math.random() < 0.2 // 20% 확률로 불량
-      if (isDefect) {
-        setNgCount((p) => p + 1)
-        const defect = DEFECT_TYPES[Math.floor(Math.random() * DEFECT_TYPES.length)]
-        setDefectCounts((p) => ({ ...p, [defect]: (p[defect] || 0) + 1 }))
-        setLogs((p) => [{ id: Date.now(), text: `[NG] ${defect} 감지됨`, type: "ng" }, ...p].slice(0, 50))
-      } else {
-        setOkCount((p) => p + 1)
-        setLogs((p) => [{ id: Date.now(), text: `[OK] 정상 품목 판정`, type: "ok" }, ...p].slice(0, 50))
+    if (!isLive || !net || !classifier) return
+    
+    const interval = setInterval(async () => {
+      const video = webcamRef.current?.video
+      if (!video || video.readyState !== 4) return
+
+      try {
+        const img = tf.browser.fromPixels(video)
+        const activation = net.infer(img, true)
+        const result = await classifier.predictClass(activation)
+        img.dispose()
+
+        // result.label: 예측된 클래스 이름 (예: "OK", "가공불량" 등)
+        // result.confidences: 각 클래스별 확신도 (예: { OK: 0.9, 가공불량: 0.1 })
+        
+        const predClass = result.label
+        const conf = result.confidences[predClass] * 100 // % 변환
+
+        if (predClass === "OK" || conf < config.threshold) {
+          // 정상 판정 (또는 임계값 미달 시 기본 정상 처리)
+          setOkCount((p) => p + 1)
+          setLogs((p) => [{ id: Date.now(), text: `[OK] 정상 품목 판정 (${conf.toFixed(1)}%)`, type: "ok" }, ...p].slice(0, 50))
+        } else {
+          // 불량 판정
+          setNgCount((p) => p + 1)
+          setDefectCounts((p) => ({ ...p, [predClass]: (p[predClass] || 0) + 1 }))
+          setLogs((p) => [{ id: Date.now(), text: `[NG] ${predClass} 감지 (${conf.toFixed(1)}%)`, type: "ng" }, ...p].slice(0, 50))
+        }
+
+      } catch (e) {
+        console.error("Prediction error", e)
       }
-    }, 2000) // 2초 주기
+
+    }, config.intervalSec * 1000)
+
     return () => clearInterval(interval)
-  }, [isLive])
+  }, [isLive, net, classifier, config])
 
   // 가동률 계산
   useEffect(() => {
@@ -86,7 +150,7 @@ export default function VisionInspectionPage() {
       `}</style>
 
       <div className="flex flex-col gap-4 h-full" style={{ minHeight: "calc(100vh - 100px)" }}>
-        {/* 상단 헤더 영역 (이미지 참조) */}
+        {/* 상단 헤더 영역 */}
         <div className="flex items-center justify-between px-4 py-3 bg-indigo-50/50 rounded-lg border border-indigo-100">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-600" />
@@ -121,8 +185,17 @@ export default function VisionInspectionPage() {
                 />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center">
-                  <Play className="w-12 h-12 mb-2 opacity-50" />
-                  <p className="text-sm">우측 하단의 'AI 검사 시작' 버튼을 눌러주세요</p>
+                  {!isModelReady ? (
+                    <>
+                      <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                      <p className="text-sm">AI 모델 준비 중...</p>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-12 h-12 mb-2 opacity-50" />
+                      <p className="text-sm">우측 하단의 'AI 검사 시작' 버튼을 눌러주세요</p>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -130,11 +203,11 @@ export default function VisionInspectionPage() {
               <div className="absolute top-4 left-4 dark-glass text-slate-200 p-3 rounded-md w-64 shadow-lg">
                 <div className="flex items-center gap-1.5 mb-2 text-white border-b border-slate-600 pb-1">
                   <Settings className="w-3.5 h-3.5" />
-                  <span className="text-xs font-bold">설정 정보</span>
+                  <span className="text-xs font-bold">적용된 설정 정보</span>
                 </div>
                 <ul className="text-[11px] space-y-1.5 list-disc pl-4 marker:text-slate-500">
-                  <li>검사 주기: 2초</li>
-                  <li>판정 기준: 90%</li>
+                  <li>검사 주기: {config.intervalSec}초</li>
+                  <li>판정 임계값: {config.threshold}%</li>
                   <li>자동 등록: 꺼짐 (수동 일괄 저장)</li>
                 </ul>
               </div>
@@ -148,29 +221,33 @@ export default function VisionInspectionPage() {
               )}
             </div>
 
-            {/* 불량 유형별 상세 */}
+            {/* 불량 유형별 상세 (설정에서 선택한 항목만 표시) */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-4 text-indigo-800">
                 <span className="w-4 h-4 border-2 border-indigo-300 border-dashed rounded-sm" />
-                <h3 className="text-[13px] font-bold">불량 유형별 상세</h3>
+                <h3 className="text-[13px] font-bold">불량 유형별 상세 (설정된 항목)</h3>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2">
-                {DEFECT_TYPES.map((defect) => {
-                  const count = defectCounts[defect] || 0
-                  return (
-                    <div key={defect} className={`flex items-center justify-between px-3 py-2 border rounded-md transition-colors ${count > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="flex items-center gap-1.5">
-                        <AlertTriangle className={`w-3.5 h-3.5 ${count > 0 ? 'text-red-500' : 'text-slate-400'}`} />
-                        <span className={`text-[11px] font-medium truncate w-24 ${count > 0 ? 'text-red-700' : 'text-slate-600'}`} title={defect}>
-                          {defect}
+                {config.selectedDefects.length === 0 ? (
+                  <div className="col-span-full text-center text-slate-400 text-xs py-4">비전 설정 메뉴에서 검사할 불량 유형을 추가해주세요.</div>
+                ) : (
+                  config.selectedDefects.map((defect) => {
+                    const count = defectCounts[defect] || 0
+                    return (
+                      <div key={defect} className={`flex items-center justify-between px-3 py-2 border rounded-md transition-colors ${count > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className={`w-3.5 h-3.5 ${count > 0 ? 'text-red-500' : 'text-slate-400'}`} />
+                          <span className={`text-[11px] font-medium truncate w-24 ${count > 0 ? 'text-red-700' : 'text-slate-600'}`} title={defect}>
+                            {defect}
+                          </span>
+                        </div>
+                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${count > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'}`}>
+                          {count}
                         </span>
                       </div>
-                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${count > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'}`}>
-                        {count}
-                      </span>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -245,7 +322,8 @@ export default function VisionInspectionPage() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={toggleInspection}
-                className={`w-full py-3.5 rounded-lg text-white font-bold text-[13px] shadow-md transition-all flex items-center justify-center gap-2 ${
+                disabled={!isModelReady}
+                className={`w-full py-3.5 rounded-lg text-white font-bold text-[13px] shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
                   isLive 
                     ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' 
                     : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 shadow-indigo-500/30'
@@ -269,3 +347,4 @@ export default function VisionInspectionPage() {
     </SmartFactoryWrapper>
   )
 }
+
