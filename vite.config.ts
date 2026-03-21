@@ -16,11 +16,11 @@ export default defineConfig(({ mode }) => {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
     },
     server: {
-      port: 5173,
+      port: 5000,
       host: "0.0.0.0",
       proxy: {
         "/api": {
-          target: "http://localhost:5000",
+          target: "http://localhost:5001",
           changeOrigin: true,
           secure: false,
         },

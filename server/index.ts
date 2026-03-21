@@ -10,7 +10,7 @@ import feedRouter from './routes/feed'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = parseInt(process.env.PORT || '5000', 10)
+const PORT = parseInt(process.env.PORT || '5001', 10)
 
 app.use(cors())
 app.use(express.json({ limit: '100mb' }))
