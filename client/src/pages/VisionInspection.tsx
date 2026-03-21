@@ -110,7 +110,7 @@ export default function VisionInspectionPage() {
           {/* 좌측: 웹캠 + 불량 유형별 상세 */}
           <div className="flex flex-col gap-4 flex-1">
             {/* 웹캠 영역 */}
-            <div className="relative bg-slate-100 rounded-lg border border-slate-200 shadow-sm overflow-hidden flex items-center justify-center min-h-[360px]">
+            <div className="relative bg-slate-100 rounded-lg border border-slate-200 shadow-sm overflow-hidden flex items-center justify-center min-h-[280px] max-h-[380px]">
               {isLive ? (
                 <Webcam
                   ref={webcamRef}
