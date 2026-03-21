@@ -368,6 +368,7 @@ export default function SmartDashboard() {
                   <Line type="monotone" dataKey="defect" stroke="#ef4444" strokeWidth={2} name="불량" dot={{ r:3, fill:"#ef4444" }} />
                 </ComposedChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
