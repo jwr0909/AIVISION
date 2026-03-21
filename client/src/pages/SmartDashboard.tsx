@@ -71,6 +71,10 @@ function MiniCalendar() {
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
+  // 부족한 칸 채우기 (항상 6주치 보이도록 하거나 마지막 주 칸 맞추기)
+  const remainingCells = 42 - days.length;
+  for (let i = 0; i < remainingCells; i++) days.push(null);
+
   return (
     <div className="text-xs select-none">
       <div className="flex items-center justify-between mb-2">
@@ -82,9 +86,9 @@ function MiniCalendar() {
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
-      <div className="grid grid-cols-7 text-center gap-y-0.5">
+      <div className="grid grid-cols-7 text-center gap-y-1">
         {["일","월","화","수","목","금","토"].map((d) => (
-          <div key={d} className={`py-0.5 font-semibold text-[10px] ${d==="일"?"text-red-400":d==="토"?"text-blue-400":"text-slate-400"}`}>{d}</div>
+          <div key={d} className={`py-1 font-semibold text-[11px] border-b border-slate-100 mb-1 ${d==="일"?"text-red-400":d==="토"?"text-blue-400":"text-slate-500"}`}>{d}</div>
         ))}
         {days.map((day, i) => {
           const isToday = day===today.getDate() && m===today.getMonth() && y===today.getFullYear();
@@ -92,15 +96,17 @@ function MiniCalendar() {
           const isSat = i % 7 === 6;
           const isHL  = day && highlighted.includes(day);
           return (
-            <div key={i} className={`py-1 rounded-full mx-auto w-6 h-6 flex items-center justify-center cursor-pointer transition-all text-[11px] ${
-              !day ? "" :
-              isToday ? "bg-blue-600 text-white font-bold shadow-sm shadow-blue-300" :
-              isHL    ? "bg-blue-100 text-blue-700 font-semibold" :
-              isSun   ? "text-red-400 hover:bg-red-50" :
-              isSat   ? "text-blue-400 hover:bg-blue-50" :
-              "text-slate-600 hover:bg-slate-100"
-            }`}>
-              {day || ""}
+            <div key={i} className="aspect-square flex items-center justify-center p-0.5">
+              <div className={`w-full h-full rounded flex items-center justify-center cursor-pointer transition-all text-[11px] ${
+                !day ? "" :
+                isToday ? "bg-blue-600 text-white font-bold shadow-sm shadow-blue-300 ring-2 ring-blue-600 ring-offset-1" :
+                isHL    ? "bg-blue-50 text-blue-700 font-bold border border-blue-200" :
+                isSun   ? "text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100" :
+                isSat   ? "text-blue-500 hover:bg-blue-50 border border-transparent hover:border-blue-100" :
+                "text-slate-600 hover:bg-slate-50 border border-slate-100 hover:border-slate-300"
+              }`}>
+                {day || ""}
+              </div>
             </div>
           );
         })}
