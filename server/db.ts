@@ -317,6 +317,60 @@ export async function initBoardTables() {
     `)
     console.log('📦 work_result_entries 테이블 준비 완료')
 
+    // ─── 검사요청유형 테이블 ───
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS defect_type_mst (
+        id          SERIAL PRIMARY KEY,
+        grp_cd      VARCHAR(10) NOT NULL,
+        grp_name    VARCHAR(40) NOT NULL,
+        defect_cd   VARCHAR(10) NOT NULL,
+        defect_name VARCHAR(60) NOT NULL,
+        remark      VARCHAR(100),
+        use_yn      CHAR(1) DEFAULT 'Y',
+        sort_no     INTEGER DEFAULT 0,
+        work_date   VARCHAR(10),
+        work_id     VARCHAR(20),
+        created_at  TIMESTAMP DEFAULT NOW(),
+        updated_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE(grp_cd, defect_cd)
+      );
+    `)
+    // 시드 데이터 삽입 (없을 때만)
+    await client.query(`
+      INSERT INTO defect_type_mst (grp_cd, grp_name, defect_cd, defect_name, sort_no) VALUES
+        ('L01','외주불량','007','찍힘불량',1),
+        ('L01','외주불량','O01','가공불량',2),
+        ('L01','외주불량','O02','단조불량',3),
+        ('L01','외주불량','O03','크랙불량',4),
+        ('L01','외주불량','O04','시편폐기',5),
+        ('L01','외주불량','O05','고주파 크랙',6),
+        ('L01','외주불량','O06','열처리 불량',7),
+        ('L01','외주불량','O08','절단불량',8),
+        ('L01','외주불량','O09','소재크랙',9),
+        ('L01','외주불량','O10','소재불량',10),
+        ('L01','외주불량','O11','소재흑피',11),
+        ('L01','외주불량','O12','세팅불량',12),
+        ('L02','가공불량','P01','가공불량(셋팅)',13),
+        ('L02','가공불량','P02','가공불량(양면삭)',14),
+        ('L02','가공불량','P03','가공불량(보링)',15),
+        ('L02','가공불량','P04','가공불량(드릴)',16),
+        ('L02','가공불량','P05','가공불량(좌삭)',17),
+        ('L02','가공불량','P06','조립불량',18),
+        ('L02','가공불량','P07','외관불량(형상)',19),
+        ('L02','가공불량','P08','연마불량',20),
+        ('L02','가공불량','P09','찍힘불량',21),
+        ('L02','가공불량','P10','버핑불량',22),
+        ('L02','가공불량','P11','가공불량(와이어커팅)',23),
+        ('L03','열처리불량','H01','고주파 시편',24),
+        ('L03','열처리불량','H02','고주파 크랙',25),
+        ('L03','열처리불량','H03','열처리 셋팅불량',26),
+        ('L03','열처리불량','H04','소재크랙',27),
+        ('L03','열처리불량','H05','스프레이켄칭크랙',28),
+        ('L05','소재부족','A01','소재부족',29)
+      ON CONFLICT (grp_cd, defect_cd) DO NOTHING;
+    `)
+    console.log('📦 defect_type_mst 테이블 준비 완료')
+
     // 인덱스 생성
     await client.query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`)
     await client.query(`CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id)`)

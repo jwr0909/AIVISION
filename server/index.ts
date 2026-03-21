@@ -357,6 +357,67 @@ app.delete('/api/item-master/:item_cd', async (req, res) => {
   }
 })
 
+// ─── 검사요청유형(불량유형) API ───
+
+// 목록 조회
+app.get('/api/defect-type', async (req, res) => {
+  try {
+    const { grp_cd, keyword } = req.query
+    let sql = `SELECT * FROM defect_type_mst WHERE 1=1`
+    const params: any[] = []
+    let i = 1
+    if (grp_cd)  { sql += ` AND grp_cd=$${i++}`; params.push(grp_cd) }
+    if (keyword) { sql += ` AND (defect_cd ILIKE $${i} OR defect_name ILIKE $${i})`; params.push(`%${keyword}%`); i++ }
+    sql += ` ORDER BY sort_no, grp_cd, defect_cd`
+    res.json(await query(sql, params))
+  } catch (e) { res.status(500).json({ message: '조회 실패' }) }
+})
+
+// 그룹 목록
+app.get('/api/defect-type/groups', async (_req, res) => {
+  try {
+    const rows = await query(`SELECT DISTINCT grp_cd, grp_name FROM defect_type_mst ORDER BY grp_cd`)
+    res.json(rows)
+  } catch (e) { res.status(500).json({ message: '조회 실패' }) }
+})
+
+// 등록
+app.post('/api/defect-type', async (req, res) => {
+  try {
+    const d = req.body
+    const now = new Date().toISOString().slice(0,10)
+    const maxSort = await query(`SELECT COALESCE(MAX(sort_no),0)+1 AS next FROM defect_type_mst`)
+    await query(
+      `INSERT INTO defect_type_mst (grp_cd, grp_name, defect_cd, defect_name, remark, use_yn, sort_no, work_date, work_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [d.grp_cd, d.grp_name, d.defect_cd, d.defect_name, d.remark??null, d.use_yn??'Y', maxSort[0].next, now, 'admin']
+    )
+    res.json({ success: true })
+  } catch (e: any) { res.status(500).json({ message: e.detail ?? '등록 실패' }) }
+})
+
+// 수정
+app.put('/api/defect-type/:id', async (req, res) => {
+  try {
+    const d = req.body
+    const now = new Date().toISOString().slice(0,10)
+    await query(
+      `UPDATE defect_type_mst SET grp_cd=$1, grp_name=$2, defect_cd=$3, defect_name=$4,
+       remark=$5, use_yn=$6, work_date=$7, work_id=$8, updated_at=NOW() WHERE id=$9`,
+      [d.grp_cd, d.grp_name, d.defect_cd, d.defect_name, d.remark??null, d.use_yn??'Y', now, 'admin', req.params.id]
+    )
+    res.json({ success: true })
+  } catch (e: any) { res.status(500).json({ message: e.detail ?? '수정 실패' }) }
+})
+
+// 삭제
+app.delete('/api/defect-type/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM defect_type_mst WHERE id=$1', [req.params.id])
+    res.json({ success: true })
+  } catch (e) { res.status(500).json({ message: '삭제 실패' }) }
+})
+
 // DB 초기화 (테이블 생성)
 initBoardTables().catch((err) => {
   console.error('⚠️ DB 초기화 실패 (서버는 계속 실행됩니다):', err)
