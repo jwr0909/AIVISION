@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import Webcam from "react-webcam"
-import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw } from "lucide-react"
+import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, PlusCircle } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import ItemSearchModal from "@/components/ItemSearchModal"
+import DefectTypeSearchModal from "@/components/DefectTypeSearchModal"
 import * as tf from "@tensorflow/tfjs"
 import * as mobilenet from "@tensorflow-models/mobilenet"
 import * as knnClassifier from "@tensorflow-models/knn-classifier"
@@ -41,6 +42,7 @@ export default function VisionSetting() {
   const [config, setConfig] = useState(getSavedConfig())
   const [dept, setDept] = useState("관리부")
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
+  const [isDefectModalOpen, setIsDefectModalOpen] = useState(false)
   
   // AI 모델
   const [classifier, setClassifier] = useState<knnClassifier.KNNClassifier | null>(null)
@@ -270,35 +272,31 @@ export default function VisionSetting() {
             </div>
             
             <div className="p-4 flex-1 overflow-auto space-y-5">
-              {/* 불량 유형 추가 Select (DB에서 가져온 목록) */}
+              {/* 불량 유형 추가 (모달 연동) */}
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1.5">검사할 불량 유형 추가 (DB연동)</label>
-                <select 
-                  onChange={(e) => {
-                    if (e.target.value && !config.selectedDefects.includes(e.target.value)) {
-                      toggleDefect(e.target.value)
-                    }
-                    e.target.value = ""
-                  }}
-                  className="w-full border border-slate-200 rounded p-2 text-[12px] text-slate-600 focus:outline-none focus:border-indigo-400 mb-3"
-                >
-                  <option value="">유형 선택...</option>
-                  {allDefects
-                    .filter((d: DefectType) => !config.selectedDefects.includes(d.defect_name))
-                    .map((d: DefectType) => (
-                      <option key={d.defect_cd} value={d.defect_name}>{d.defect_name}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-slate-700">검사할 불량 유형 (DB연동)</label>
+                  <button 
+                    onClick={() => setIsDefectModalOpen(true)}
+                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-[10px] font-bold hover:bg-indigo-100 active:scale-95 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3" /> 유형 추가
+                  </button>
+                </div>
 
-                <div className="flex flex-wrap gap-1.5 max-h-[150px] overflow-y-auto">
-                  {config.selectedDefects.map(defect => (
-                    <div key={defect} className="flex items-center gap-1 px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-[10px]">
-                      {defect}
-                      <button onClick={() => toggleDefect(defect)} className="hover:bg-indigo-200 rounded p-0.5 ml-1 transition-colors">
-                        <Trash2 className="w-3 h-3 text-indigo-400 hover:text-indigo-700" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded min-h-[50px] max-h-[150px] overflow-y-auto">
+                  {config.selectedDefects.length === 0 ? (
+                    <span className="text-[11px] text-slate-400 my-auto">선택된 불량 유형이 없습니다.</span>
+                  ) : (
+                    config.selectedDefects.map((defect: string) => (
+                      <div key={defect} className="flex items-center gap-1 px-2 py-1 bg-white border border-indigo-200 text-indigo-700 shadow-sm rounded text-[10px] font-medium">
+                        {defect}
+                        <button onClick={() => toggleDefect(defect)} className="hover:bg-rose-50 rounded p-0.5 ml-1 transition-colors">
+                          <Trash2 className="w-3 h-3 text-slate-400 hover:text-rose-500" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -366,6 +364,14 @@ export default function VisionSetting() {
         open={isItemModalOpen} 
         onOpenChange={setIsItemModalOpen} 
         onSelect={(item) => setConfig(p => ({ ...p, itemName: item.item_name }))} 
+      />
+
+      {/* 불량 유형 검색 다중선택 모달 */}
+      <DefectTypeSearchModal
+        open={isDefectModalOpen}
+        onOpenChange={setIsDefectModalOpen}
+        initialSelected={config.selectedDefects}
+        onSelect={(selected) => setConfig(p => ({ ...p, selectedDefects: selected }))}
       />
     </SmartFactoryWrapper>
   )
