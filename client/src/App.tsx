@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom'
-import Layout from './components/Layout'
+import AppLayout from './components/AppLayout'
 import Home from './pages/Home'
 
 // 정책/고객지원 페이지
@@ -155,9 +155,9 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
-      <Layout>
+      <AppLayout>
         <PageManager />
-      </Layout>
+      </AppLayout>
     </BrowserRouter>
   )
 }
