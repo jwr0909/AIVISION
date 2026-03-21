@@ -14,7 +14,8 @@ export default function VisionInspectionPage() {
   const [config, setConfig] = useState({
     intervalSec: 2,
     threshold: 90,
-    selectedDefects: [] as string[]
+    selectedDefects: [] as string[],
+    itemName: "D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL"
   })
 
   // AI 모델
@@ -160,7 +161,7 @@ export default function VisionInspectionPage() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded text-[11px] text-slate-600 shadow-sm">
               <Box className="w-3.5 h-3.5" />
-              <span>D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL</span>
+              <span>{config.itemName}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded text-[11px] text-slate-600 shadow-sm">
               <RefreshCw className="w-3.5 h-3.5" />

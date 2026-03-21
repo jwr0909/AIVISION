@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import Webcam from "react-webcam"
 import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
+import ItemSearchModal from "@/components/ItemSearchModal"
 import * as tf from "@tensorflow/tfjs"
 import * as mobilenet from "@tensorflow-models/mobilenet"
 import * as knnClassifier from "@tensorflow-models/knn-classifier"
@@ -34,12 +35,12 @@ export default function VisionSetting() {
       const saved = localStorage.getItem('vision_config')
       if (saved) return JSON.parse(saved)
     } catch (e) {}
-    return { intervalSec: 2, threshold: 90, selectedDefects: [] }
+    return { intervalSec: 2, threshold: 90, selectedDefects: [], itemName: 'D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL' }
   }
 
   const [config, setConfig] = useState(getSavedConfig())
   const [dept, setDept] = useState("관리부")
-  const [itemName, setItemName] = useState("D4H LOOSE LINK & PIN&BUSH GROUP WITH SEAL")
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   
   // AI 모델
   const [classifier, setClassifier] = useState<knnClassifier.KNNClassifier | null>(null)
@@ -328,9 +329,15 @@ export default function VisionSetting() {
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1.5">검사 품목</label>
                   <div className="relative">
-                    <input type="text" value={itemName} onChange={e => setItemName(e.target.value)} 
-                      className="w-full border border-slate-200 rounded pl-2 pr-8 py-2 text-[12px] focus:outline-none focus:border-indigo-400" />
-                    <Search className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={config.itemName} 
+                      readOnly
+                      onClick={() => setIsItemModalOpen(true)}
+                      placeholder="품목을 선택하세요"
+                      className="w-full border border-slate-200 rounded pl-2 pr-8 py-2 text-[12px] bg-slate-50 cursor-pointer focus:outline-none focus:border-indigo-400" 
+                    />
+                    <Search className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -353,6 +360,13 @@ export default function VisionSetting() {
           </div>
         </div>
       </div>
+
+      {/* 품목 검색 모달 */}
+      <ItemSearchModal 
+        open={isItemModalOpen} 
+        onOpenChange={setIsItemModalOpen} 
+        onSelect={(item) => setConfig(p => ({ ...p, itemName: item.item_name }))} 
+      />
     </SmartFactoryWrapper>
   )
 }
