@@ -117,7 +117,7 @@ export default function VisionInspectionPage() {
                   audio={false}
                   screenshotFormat="image/jpeg"
                   videoConstraints={{ facingMode: "user" }}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-black/5"
                 />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center">
