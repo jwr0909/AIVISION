@@ -47,9 +47,9 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: '대시보드',  path: '/sf-dashboard',    sf: true  },
     { icon: Factory,         label: '작업실적',  path: '/sf-production',   sf: true  },
     { icon: Eye,             label: 'AI 비전',   path: '/sf-vision',       sf: true  },
+    { icon: Settings,        label: '비전설정',   path: '/sf-vision-setting',sf: true  },
     { icon: Package,         label: '품목등록',   path: '/sf-item-master',  sf: true  },
     { icon: ShieldAlert,     label: '검사유형',   path: '/sf-defect-type',  sf: true  },
-    { icon: Settings,        label: '비전설정',   path: '/sf-vision-setting',sf: true  },
   ]
 
   // 고객지원 링크 (DecomDirectTrade 원본 그대로)
