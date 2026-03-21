@@ -327,11 +327,11 @@ export default function SmartDashboard() {
       <div className="grid grid-cols-12 gap-3 mb-3">
 
         {/* 설비 생산 현황 (대형 영역 차트) */}
-        <div className="col-span-12 lg:col-span-7 anim-up" style={{animationDelay:".35s"}}>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500" />
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
+        <div className="col-span-12 lg:col-span-7 anim-up flex flex-col" style={{animationDelay:".35s"}}>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden flex-1 flex flex-col">
+            <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 shrink-0" />
+            <div className="p-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="relative">
                   <div className="absolute -top-1 left-0 text-[32px] font-black text-slate-50 leading-none pointer-events-none select-none">생산현황</div>
                   <div className="relative">
@@ -345,8 +345,9 @@ export default function SmartDashboard() {
                   <span className="live-dot w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" /> 실시간
                 </span>
               </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart data={productionData} margin={{ top:4, right:8, left:-8, bottom:0 }}>
+              <div className="flex-1 min-h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={productionData} margin={{ top:4, right:8, left:-8, bottom:0 }}>
                   <defs>
                     <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -416,10 +417,10 @@ export default function SmartDashboard() {
           </div>
 
           {/* 캘린더 */}
-          <div className="anim-up flex-1" style={{animationDelay:".41s"}}>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden h-full">
-              <div className="h-1 bg-gradient-to-r from-violet-500 to-purple-600" />
-              <div className="p-4">
+          <div className="anim-up flex-1 flex flex-col" style={{animationDelay:".41s"}}>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm card-hover flex-1 flex flex-col">
+              <div className="h-1 bg-gradient-to-r from-violet-500 to-purple-600 shrink-0" />
+              <div className="p-4 flex-1 flex flex-col justify-center">
                 <div className="relative mb-3">
                   <div className="absolute -top-1 left-0 text-[26px] font-black text-slate-50 leading-none pointer-events-none select-none">캘린더</div>
                   <h3 className="relative text-sm font-bold text-slate-800 flex items-center gap-2">
