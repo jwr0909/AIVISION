@@ -15,6 +15,7 @@ const WorkResult      = lazy(() => import('./pages/WorkResult'))
 const VisionInspection = lazy(() => import('./pages/VisionInspection'))
 const ItemMaster      = lazy(() => import('./pages/ItemMaster'))
 const DefectType      = lazy(() => import('./pages/DefectType'))
+const VisionSetting   = lazy(() => import('./pages/VisionSetting'))
 
 const VALID_PATHS = [
   '/',
@@ -27,6 +28,7 @@ const VALID_PATHS = [
   '/sf-vision',
   '/sf-item-master',
   '/sf-defect-type',
+  '/sf-vision-setting',
 ]
 
 function SFLoading() {
@@ -50,6 +52,7 @@ function PageManager() {
   const [sfVisionLoaded,      setSfVisionLoaded]      = useState(false)
   const [sfItemMasterLoaded,  setSfItemMasterLoaded]  = useState(false)
   const [sfDefectTypeLoaded,  setSfDefectTypeLoaded]  = useState(false)
+  const [sfVisionSettingLoaded, setSfVisionSettingLoaded] = useState(false)
 
   useEffect(() => {
     if (path === '/sf-dashboard')    setSfDashboardLoaded(true)
@@ -57,6 +60,7 @@ function PageManager() {
     if (path === '/sf-vision')       setSfVisionLoaded(true)
     if (path === '/sf-item-master')  setSfItemMasterLoaded(true)
     if (path === '/sf-defect-type')  setSfDefectTypeLoaded(true)
+    if (path === '/sf-vision-setting') setSfVisionSettingLoaded(true)
   }, [path])
 
   // 유효하지 않은 경로 → 홈으로
@@ -127,6 +131,15 @@ function PageManager() {
         <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-defect-type' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <DefectType />
+          </Suspense>
+        </div>
+      )}
+
+      {/* 스마트팩토리 — 비전 검사 설정 */}
+      {sfVisionSettingLoaded && (
+        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision-setting' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <VisionSetting />
           </Suspense>
         </div>
       )}
