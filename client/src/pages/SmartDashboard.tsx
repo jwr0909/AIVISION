@@ -286,7 +286,7 @@ export default function SmartDashboard() {
           { id: 4, title: "매출 마감 현황", val1: 11334, val2: 6487173, icon: CreditCard, bg: "from-[#F9F5FF] to-[#F3EBFF]/50", numColor: "from-purple-500 to-fuchsia-500", subColor: "text-purple-400" },
           { id: 5, title: "반입 현황", val1: 0, val2: 0, icon: RotateCcw, bg: "from-[#FFF5F7] to-[#FFEBF0]/50", numColor: "from-rose-400 to-pink-500", subColor: "text-rose-400" },
         ].map((kpi, i) => (
-          <div key={i} className="anim-up card-hover flex flex-col h-[180px]" style={{animationDelay:`${.1s + i*.05}s`}}>
+          <div key={i} className="anim-up card-hover flex flex-col h-[180px]" style={{animationDelay:`${0.1 + i * 0.05}s`}}>
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full relative">
                {/* Header (White background, moving animation, gradient text) */}
                <div className="px-3 py-2.5 border-b border-slate-100 flex items-center gap-2 bg-white z-10 shrink-0 relative overflow-hidden">
