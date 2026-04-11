@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import Webcam from "react-webcam"
-import { Play, Square, Settings, RefreshCw, Box, AlertTriangle, CheckCircle, UploadCloud, Activity, ZoomIn, X } from "lucide-react"
+import { Play, Square, Settings, RefreshCw, Box, AlertTriangle, CheckCircle, UploadCloud, Activity, ZoomIn, X, Camera, Server, MonitorSmartphone, Monitor, FileBarChart2, ShieldAlert, CheckSquare } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import * as tf from "@tensorflow/tfjs"
 import * as mobilenet from "@tensorflow-models/mobilenet"
@@ -30,6 +30,11 @@ export default function VisionInspectionPage() {
   const [logs, setLogs] = useState<{ id: number; time: string; text: string; type: "ok" | "ng"; conf: string; imageSrc?: string }[]>([])
   const [defectCounts, setDefectCounts] = useState<Record<string, number>>({})
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'software' | 'machine'>('software')
+  const [isHwLive, setIsHwLive] = useState(false)
+  const [hwLogs, setHwLogs] = useState<{ id: number; time: string; text: string; type: "ok" | "ng" }[]>([])
+  const [hwOkCount, setHwOkCount] = useState(0)
+  const [hwNgCount, setHwNgCount] = useState(0)
 
   // 설정 및 모델 로드
   useEffect(() => {
@@ -40,7 +45,7 @@ export default function VisionInspectionPage() {
         const loadedClassifier = knnClassifier.create()
         
         try {
-          const res = await fetch('/api/vision/settings')
+          const res = await fetch('/api/vision/settings?_t=' + Date.now())
           if (res.ok) {
             const data = await res.json()
             if (data.config) {
@@ -185,7 +190,34 @@ export default function VisionInspectionPage() {
           </div>
         </div>
 
+        {/* 탭 네비게이션 */}
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 mt-2">
+          <button
+            onClick={() => setActiveTab('software')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border border-b-0 rounded-t-lg transition-colors relative top-[1px] ${
+              activeTab === 'software'
+                ? 'border-slate-200 text-indigo-600 bg-white z-10'
+                : 'border-transparent text-slate-500 hover:text-slate-700 bg-transparent'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            소프트웨어 AI 비전
+          </button>
+          <button
+            onClick={() => setActiveTab('machine')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border border-b-0 rounded-t-lg transition-colors relative top-[1px] ${
+              activeTab === 'machine'
+                ? 'border-slate-200 text-[#B222DB] bg-white z-10'
+                : 'border-transparent text-slate-500 hover:text-slate-700 bg-transparent'
+            }`}
+          >
+            <Server className="w-4 h-4" />
+            머신비전 (뷰웍스 연동)
+          </button>
+        </div>
+
         {/* 메인 레이아웃 */}
+        {activeTab === 'software' && (
         <div className="flex flex-col lg:flex-row gap-4 flex-1">
           {/* 좌측: 웹캠 + 불량 유형별 상세 */}
           <div className="flex flex-col gap-4 flex-1">
@@ -403,6 +435,152 @@ export default function VisionInspectionPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {activeTab === 'machine' && (
+          <div className="flex flex-col lg:flex-row gap-4 flex-1">
+            {/* 좌측: 뷰웍스 카메라 화면 및 로그 */}
+            <div className="flex flex-col gap-4 flex-1">
+              <div className="flex flex-col flex-1 rounded-md border border-slate-700 bg-[#0B0F19] overflow-hidden relative shadow-lg">
+                
+                {/* 카메라 뷰 헤더 */}
+                <div className="flex items-center justify-between p-3 border-b border-slate-800 shrink-0 z-10 bg-[#0B0F19]">
+                  <div className="flex items-center gap-2 text-slate-200">
+                    <Server className="w-4 h-4 text-[#A855F7]" />
+                    <h3 className="text-[13px] font-bold tracking-wide">VIEWORKS HIGH-RES CAMERA</h3>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${isHwLive ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-600'}`} />
+                    <span className={`text-[10px] font-bold tracking-wider ${isHwLive ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      {isHwLive ? 'ONLINE' : 'OFFLINE'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* 카메라 메인 화면 (오프라인 표시) */}
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] relative">
+                  <div className="absolute top-2 left-3 text-[10px] text-slate-600 font-mono tracking-wider">
+                    Waiting for Edge Application connection...
+                  </div>
+                  
+                  <div className="flex flex-col items-center gap-4 text-slate-500 opacity-60">
+                    <Monitor className="w-12 h-12 stroke-[1.5]" />
+                    <div className="text-center">
+                      <p className="text-[11px] font-bold mb-1 text-slate-400">엣지 브릿지(Python) 애플리케이션 연결이 필요합니다.</p>
+                      <p className="text-[10px]">
+                        현장 PC에서 Vieworks VIS7 SDK를 구동하여 획득한 이미지를<br/>
+                        ERP 서버 API로 스트리밍하십시오.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* API 로그 수신 바 */}
+                <div className="h-[60px] bg-slate-900 border-t border-slate-800 p-2 flex flex-col">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <MonitorSmartphone className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold">VIS7 Middleware Raw Data (API 수신)</span>
+                    </div>
+                    <span className="text-[9px] text-slate-500 font-mono bg-slate-800 px-1.5 py-0.5 rounded">Port: 5000</span>
+                  </div>
+                  <div className="flex-1 rounded bg-black/50 border border-slate-800/80 px-2 py-1 flex items-center">
+                    <span className="text-[10px] text-slate-500 font-mono">데이터 대기 중...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 우측: 연동 검사 현황 패널 */}
+            <div className="w-full lg:w-[320px] flex flex-col gap-4">
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2 text-fuchsia-800">
+                    <Server className="w-4 h-4" />
+                    <h3 className="text-[13px] font-bold">연동 검사 현황 (HW)</h3>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button className="p-1 border border-slate-200 rounded text-slate-500 hover:bg-slate-50">
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                    <button className="flex items-center gap-1 px-2 py-1 border border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100 rounded text-[10px] font-medium transition-colors">
+                      <UploadCloud className="w-3 h-3" /> 검사요청등록 (0)
+                    </button>
+                  </div>
+                </div>
+
+                {/* OK / NG 카드 */}
+                <div className="flex gap-2 mb-4">
+                  <div className="flex-1 bg-emerald-50/50 rounded-lg p-3 flex flex-col items-center justify-center border border-emerald-100 relative overflow-hidden">
+                    <div className="text-[10px] text-emerald-700 font-bold mb-1 z-10">수신된 정상 (OK)</div>
+                    <div className="text-3xl font-black text-emerald-600 z-10">{hwOkCount}</div>
+                  </div>
+                  <div className="flex-1 bg-rose-50/50 rounded-lg p-3 flex flex-col items-center justify-center border border-rose-100 relative overflow-hidden">
+                    <div className="text-[10px] text-rose-700 font-bold mb-1 z-10">수신된 불량 (NG)</div>
+                    <div className="text-3xl font-black text-rose-600 z-10">{hwNgCount}</div>
+                  </div>
+                </div>
+
+                {/* HW 로그 리스트 */}
+                <div className="flex-1 border border-slate-200 rounded-lg bg-slate-50 p-2 overflow-auto max-h-[300px] flex flex-col relative hide-scrollbar">
+                  <div className="absolute top-2 left-2 text-[10px] font-bold text-slate-500 z-10">
+                    뷰웍스 VIS7 판정 로그
+                  </div>
+                  
+                  {hwLogs.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-[11px] text-slate-400 mt-4">
+                      수신된 데이터가 없습니다.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 mt-6">
+                      {hwLogs.map((log) => (
+                        <div key={log.id} className="anim-fade-in flex items-center justify-between p-2 rounded bg-white border border-slate-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 font-mono">[{log.time}]</span>
+                            <span className={`text-[11px] font-bold ${log.type === 'ng' ? 'text-rose-600' : 'text-emerald-600'}`}>{log.text}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 하단 제어 버튼 */}
+                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => setIsHwLive(!isHwLive)}
+                    className={`w-full py-3 rounded text-white font-bold text-[12px] shadow-sm transition-all flex items-center justify-center gap-2 ${
+                      isHwLive 
+                        ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20' 
+                        : 'bg-[#B222DB] hover:bg-[#9B12C2] shadow-[#B222DB]/20'
+                    }`}
+                  >
+                    <MonitorSmartphone className="w-4 h-4" /> {isHwLive ? '장비 연결 해제' : '장비 실시간 연결 (API)'}
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const now = new Date()
+                        const timeStr = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+                        setHwNgCount(p => p + 1)
+                        setHwLogs(p => [{ id: Date.now(), time: timeStr, text: "강제 테스트 불량", type: "ng" }, ...p].slice(0, 50))
+                      }}
+                      className="flex-1 py-2.5 rounded bg-white border border-slate-200 text-slate-600 font-medium text-[11px] hover:bg-slate-50 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5" /> 강제 불량 수신
+                    </button>
+                    <button
+                      onClick={() => { setHwOkCount(0); setHwNgCount(0); setHwLogs([]) }}
+                      className="flex-1 py-2.5 rounded bg-white border border-slate-200 text-slate-600 font-medium text-[11px] hover:bg-slate-50 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> 통계 초기화
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </SmartFactoryWrapper>
   )

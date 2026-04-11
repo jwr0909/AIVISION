@@ -16,8 +16,8 @@ interface TabState {
 }
 
 export const useTabStore = create<TabState>((set) => ({
-  tabs: [{ id: 'dashboard', path: '/sf-dashboard', label: '대시보드' }],
-  activePath: '/sf-dashboard',
+  tabs: [{ id: 'home', path: '/', label: '홈' }],
+  activePath: '/',
   addTab: (tab) =>
     set((state) => {
       const exists = state.tabs.find((t) => t.path === tab.path)

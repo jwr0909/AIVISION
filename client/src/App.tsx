@@ -18,6 +18,12 @@ const InspectionRequest = lazy(() => import('./pages/InspectionRequest'))
 const DefectType      = lazy(() => import('./pages/DefectType'))
 const VisionSetting   = lazy(() => import('./pages/VisionSetting'))
 
+// AI 데이터분석 페이지
+const DataAnalysisSettings = lazy(() => import('./pages/DataAnalysisSettings'))
+const OntologyAnalysis = lazy(() => import('./pages/OntologyAnalysis'))
+const OntologyManagement = lazy(() => import('./pages/OntologyManagement'))
+const RealtimeInsight = lazy(() => import('./pages/RealtimeInsight'))
+
 const VALID_PATHS = [
   '/',
   '/help-center',
@@ -31,6 +37,10 @@ const VALID_PATHS = [
   '/sf-inspection-request',
   '/sf-defect-type',
   '/sf-vision-setting',
+  '/data-analysis-settings',
+  '/ontology-analysis',
+  '/ontology-management',
+  '/realtime-insight',
 ]
 
 function SFLoading() {
@@ -56,6 +66,10 @@ function PageManager() {
   const [sfInspectionRequestLoaded, setSfInspectionRequestLoaded] = useState(false)
   const [sfDefectTypeLoaded,  setSfDefectTypeLoaded]  = useState(false)
   const [sfVisionSettingLoaded, setSfVisionSettingLoaded] = useState(false)
+  const [dataAnalysisSettingsLoaded, setDataAnalysisSettingsLoaded] = useState(false)
+  const [ontologyAnalysisLoaded, setOntologyAnalysisLoaded] = useState(false)
+  const [ontologyManagementLoaded, setOntologyManagementLoaded] = useState(false)
+  const [realtimeInsightLoaded, setRealtimeInsightLoaded] = useState(false)
 
   useEffect(() => {
     if (path === '/sf-dashboard')    setSfDashboardLoaded(true)
@@ -65,6 +79,10 @@ function PageManager() {
     if (path === '/sf-inspection-request') setSfInspectionRequestLoaded(true)
     if (path === '/sf-defect-type')  setSfDefectTypeLoaded(true)
     if (path === '/sf-vision-setting') setSfVisionSettingLoaded(true)
+    if (path === '/data-analysis-settings') setDataAnalysisSettingsLoaded(true)
+    if (path === '/ontology-analysis') setOntologyAnalysisLoaded(true)
+    if (path === '/ontology-management') setOntologyManagementLoaded(true)
+    if (path === '/realtime-insight') setRealtimeInsightLoaded(true)
   }, [path])
 
   // 유효하지 않은 경로 → 홈으로
@@ -75,12 +93,11 @@ function PageManager() {
   return (
     <>
       {/* 홈 */}
-      <div
-        className="flex-1 flex-col min-h-0 overflow-hidden"
-        style={{ display: path === '/' ? 'flex' : 'none' }}
-      >
-        <Home />
-      </div>
+      {path === '/' && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <Home />
+        </div>
+      )}
 
       {/* 정책/고객지원 */}
       {['/help-center', '/privacy-policy', '/terms-of-service', '/cookie-policy'].includes(path) && (
@@ -96,7 +113,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — 대시보드 */}
       {sfDashboardLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-dashboard' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-dashboard' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <SmartDashboard />
           </Suspense>
@@ -105,7 +122,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — 작업실적 */}
       {sfProductionLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-production' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-production' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <WorkResult />
           </Suspense>
@@ -114,7 +131,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — AI 비전 */}
       {sfVisionLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <VisionInspection />
           </Suspense>
@@ -123,7 +140,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — 품목등록 */}
       {sfItemMasterLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-item-master' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-item-master' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <ItemMaster />
           </Suspense>
@@ -132,7 +149,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — 검사요청등록 */}
       {sfInspectionRequestLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-inspection-request' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden h-full" style={{ display: path === '/sf-inspection-request' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <InspectionRequest />
           </Suspense>
@@ -141,7 +158,7 @@ function PageManager() {
 
       {/* 스마트팩토리 — 검사요청유형 */}
       {sfDefectTypeLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-defect-type' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-defect-type' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <DefectType />
           </Suspense>
@@ -150,9 +167,45 @@ function PageManager() {
 
       {/* 스마트팩토리 — 비전 검사 설정 */}
       {sfVisionSettingLoaded && (
-        <div className="flex-1 flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision-setting' ? 'flex' : 'none' }}>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/sf-vision-setting' ? 'flex' : 'none' }}>
           <Suspense fallback={<SFLoading />}>
             <VisionSetting />
+          </Suspense>
+        </div>
+      )}
+
+      {/* AI 데이터분석 — 데이타분석 설정 */}
+      {dataAnalysisSettingsLoaded && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/data-analysis-settings' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <DataAnalysisSettings />
+          </Suspense>
+        </div>
+      )}
+
+      {/* AI 데이터분석 — 온톨로지 분석 */}
+      {ontologyAnalysisLoaded && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/ontology-analysis' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <OntologyAnalysis />
+          </Suspense>
+        </div>
+      )}
+
+      {/* AI 데이터분석 — 온톨로지 관리 */}
+      {ontologyManagementLoaded && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/ontology-management' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <OntologyManagement />
+          </Suspense>
+        </div>
+      )}
+
+      {/* AI 데이터분석 — 실시간 인사이트 플랫폼 */}
+      {realtimeInsightLoaded && (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ display: path === '/realtime-insight' ? 'flex' : 'none' }}>
+          <Suspense fallback={<SFLoading />}>
+            <RealtimeInsight />
           </Suspense>
         </div>
       )}
@@ -160,18 +213,36 @@ function PageManager() {
   )
 }
 
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{padding: 20, color: 'red', backgroundColor: 'white'}}><h1>Something went wrong.</h1><pre>{this.state.error?.toString()}</pre><pre>{this.state.error?.stack}</pre></div>;
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <AppLayout>
-        <PageManager />
-      </AppLayout>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppLayout>
+          <PageManager />
+        </AppLayout>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

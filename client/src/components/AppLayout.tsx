@@ -2,7 +2,8 @@ import React, { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Search, PanelLeftClose, PanelLeft, Plus, Save, Trash2, Printer, FileDown, FileUp, X,
-  Home, FileText, Image as ImageIcon, Video, MessageSquare, LayoutDashboard, Factory, Eye, Settings, Package, ShieldAlert, ClipboardList
+  Home, FileText, Image as ImageIcon, Video, MessageSquare, LayoutDashboard, Factory, Eye, Settings, Package, ShieldAlert, ClipboardList,
+  Database, Network, FolderTree, Lightbulb
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useTabStore } from '../store/useTabStore'
@@ -15,9 +16,14 @@ const menuItems = [
     { icon: Package, label: '품목등록', path: '/sf-item-master' },
     { icon: ClipboardList, label: '검사요청등록', path: '/sf-inspection-request' },
     { icon: ShieldAlert, label: '검사요청유형', path: '/sf-defect-type' },
+    { icon: Factory, label: '작업실적입력', path: '/sf-production' },
     { icon: Settings, label: '비전 설정', path: '/sf-vision-setting' },
     { icon: Eye, label: 'AI 비전 검사', path: '/sf-vision' },
-    { icon: Factory, label: '작업실적입력', path: '/sf-production' },
+  ]},
+  { group: 'AI 데이터 분석', items: [
+    { icon: Database, label: '데이터 분석 및 벡터화', path: '/data-analysis-settings' },
+    { icon: FolderTree, label: '온톨로지 관리', path: '/ontology-management' },
+    { icon: Lightbulb, label: '실시간 인사이트', path: '/realtime-insight' },
   ]},
   { group: '기본메뉴', items: [
     { icon: Home, label: '홈', path: '/' },
@@ -99,7 +105,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-screen bg-[#F1F5F9] overflow-hidden sf-light text-slate-800">
-      {/* Sidebar */}
+      {/* Sidebar (Hide on Home) */}
+      {location.pathname !== '/' && (
       <aside 
         className={cn(
           "bg-[#0F172A] flex flex-col text-slate-300 transition-all duration-300 ease-in-out shrink-0 border-r border-slate-800",
@@ -160,13 +167,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
       </aside>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
         
-        {/* Top Header */}
+        {/* Top Header (Hide on Home) */}
+        {location.pathname !== '/' && (
         <header className="h-14 bg-[#0F172A] flex items-center px-4 shrink-0 justify-between">
-          {/* Logo area when sidebar is closed? No, let's just put search */}
           <div className="flex-1 flex items-center">
              <div className="flex items-center w-full max-w-md bg-slate-900 rounded-full px-4 py-1.5 border border-slate-700/50 text-slate-300 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
                <Search className="w-4 h-4 text-slate-400 shrink-0" />
@@ -178,10 +186,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="text-xs font-medium bg-slate-800 px-3 py-1.5 rounded-md hidden sm:block border border-slate-700">관리자님 환영합니다</div>
           </div>
         </header>
+        )}
 
-        {/* Global Toolbar */}
+        {/* Global Toolbar (Hide on Home) */}
+        {location.pathname !== '/' && (
         <div className="h-12 bg-white flex items-center px-3 gap-1 shrink-0 shadow-sm z-10 border-b border-slate-200">
-          {/* We only enable buttons if there's a registered handler, or we can always show them but disable if no handler */}
           <ToolbarButton icon={<Search className="w-4 h-4" />} label="조회 (F5)" onClick={() => {
              const state = useToolbarStore.getState()
              if (state.onSearch) state.onSearch()
@@ -204,8 +213,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <ToolbarButton icon={<FileDown className="w-4 h-4" />} label="엑셀변환 (Ctrl+E)" className="text-emerald-600 hover:bg-emerald-50" />
           <ToolbarButton icon={<FileUp className="w-4 h-4" />} label="엑셀입력 (Ctrl+H)" disabled />
         </div>
+        )}
 
-        {/* Tab Strip */}
+        {/* Tab Strip (Hide on Home) */}
+        {location.pathname !== '/' && (
         <div className="h-[38px] bg-slate-100 flex items-end px-2 gap-1 shrink-0 overflow-x-auto border-b border-slate-200 hide-scrollbar pt-2">
           {tabs.map(tab => {
             const isActive = activePath === tab.path
@@ -232,6 +243,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </div>
+        )}
 
         {/* Page Content */}
         <div className="flex-1 overflow-y-auto bg-white relative">

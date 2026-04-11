@@ -17,6 +17,10 @@ import {
   Package,
   ShieldAlert,
   Settings,
+  Database,
+  Network,
+  SearchCode,
+  Activity
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store/useAppStore'
@@ -50,6 +54,10 @@ const Sidebar = () => {
     { icon: Settings,        label: '비전설정',   path: '/sf-vision-setting',sf: true  },
     { icon: Package,         label: '품목등록',   path: '/sf-item-master',  sf: true  },
     { icon: ShieldAlert,     label: '검사유형',   path: '/sf-defect-type',  sf: true  },
+    { icon: Database,        label: '분석설정',   path: '/data-analysis-settings', sf: true  },
+    { icon: Network,         label: '온톨로지',   path: '/ontology-analysis', sf: true  },
+    { icon: SearchCode,      label: '온톨로지관리', path: '/ontology-management', sf: true  },
+    { icon: Activity,        label: '실시간인사이트', path: '/realtime-insight', sf: true },
   ]
 
   // 고객지원 링크 (DecomDirectTrade 원본 그대로)

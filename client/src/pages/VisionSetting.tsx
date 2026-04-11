@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import Webcam from "react-webcam"
-import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, PlusCircle, X } from "lucide-react"
+import { Settings, Save, Trash2, Camera, Info, CheckSquare, Search, RefreshCw, PlusCircle, X, Link2, MonitorSmartphone, Server } from "lucide-react"
 import SmartFactoryWrapper from "@/components/SmartFactoryWrapper"
 import ItemSearchModal from "@/components/ItemSearchModal"
 import DefectTypeSearchModal from "@/components/DefectTypeSearchModal"
@@ -44,6 +44,7 @@ export default function VisionSetting() {
   const [classifier, setClassifier] = useState<knnClassifier.KNNClassifier | null>(null)
   const [net, setNet] = useState<mobilenet.MobileNet | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'software' | 'machine'>('software')
   
   // 학습 데이터 카운트
   const [trainCounts, setTrainCounts] = useState<Record<string, number>>({ OK: 0 })
@@ -58,7 +59,7 @@ export default function VisionSetting() {
         
         // 서버에서 저장된 설정 및 모델 불러오기
         try {
-          const res = await fetch('/api/vision/settings')
+          const res = await fetch('/api/vision/settings?_t=' + Date.now())
           if (res.ok) {
             const data = await res.json()
             if (data.config) {
@@ -204,11 +205,38 @@ export default function VisionSetting() {
           <Settings className="w-5 h-5 text-indigo-600" />
           <div>
             <h1 className="text-[16px] font-bold text-slate-800">AI 비전 검사 설정</h1>
-            <p className="text-[11px] text-slate-500">딥러닝 모델 학습 및 불량 판정 기준 설정</p>
+            <p className="text-[11px] text-slate-500">딥러닝 모델 학습 및 하드웨어 비전 장비 연동 설정</p>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+        {/* 탭 네비게이션 */}
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 mt-2">
+          <button
+            onClick={() => setActiveTab('software')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border border-b-0 rounded-t-lg transition-colors relative top-[1px] ${
+              activeTab === 'software'
+                ? 'border-slate-200 text-indigo-600 bg-white z-10'
+                : 'border-transparent text-slate-500 hover:text-slate-700 bg-transparent'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            소프트웨어 AI 비전
+          </button>
+          <button
+            onClick={() => setActiveTab('machine')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border border-b-0 rounded-t-lg transition-colors relative top-[1px] ${
+              activeTab === 'machine'
+                ? 'border-slate-200 text-[#B222DB] bg-white z-10'
+                : 'border-transparent text-slate-500 hover:text-slate-700 bg-transparent'
+            }`}
+          >
+            <Server className="w-4 h-4" />
+            머신비전 (뷰웍스 연동)
+          </button>
+        </div>
+
+        {activeTab === 'software' && (
+        <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0 mt-1">
           {/* 좌측: 웹캠 및 학습 데이터 관리 */}
           <div className="flex flex-col gap-4 flex-1 min-w-0">
             
@@ -415,6 +443,90 @@ export default function VisionSetting() {
             </div>
           </div>
         </div>
+        )}
+
+        {activeTab === 'machine' && (
+          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 mt-1">
+            {/* 장비 통신 설정 */}
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="flex items-center gap-2 mb-2 text-indigo-800">
+                <MonitorSmartphone className="w-5 h-5" />
+                <h3 className="text-[15px] font-bold">장비 통신 설정 (TCP/IP & API)</h3>
+              </div>
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 space-y-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="text-[12px] font-bold text-slate-700 block mb-2">장비 IP 주소</label>
+                    <input type="text" defaultValue="192.168.1.100" className="w-full border border-slate-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-indigo-400" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[12px] font-bold text-slate-700 block mb-2">포트 (Port)</label>
+                    <input type="text" defaultValue="5000" className="w-full border border-slate-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-indigo-400 bg-slate-50" readOnly />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[12px] font-bold text-slate-700 block mb-2">통신 프로토콜</label>
+                  <select className="w-full border border-slate-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-indigo-400 appearance-none bg-white">
+                    <option>TCP/IP Socket</option>
+                    <option>HTTP REST API</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[12px] font-bold text-slate-700 block mb-2">장비 식별자 (Equipment ID)</label>
+                  <input type="text" defaultValue="VSN-MATRIX-001" className="w-full border border-slate-200 rounded px-3 py-2 text-[13px] focus:outline-none focus:border-indigo-400" />
+                </div>
+                <button className="w-full py-3 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <Link2 className="w-4 h-4" /> 연결 테스트 (Ping)
+                </button>
+              </div>
+            </div>
+
+            {/* 검사 데이터 매핑 설정 */}
+            <div className="w-full lg:w-[480px] flex flex-col gap-4">
+              <div className="flex items-center gap-2 mb-2 text-slate-700">
+                <Settings className="w-5 h-5 text-slate-500" />
+                <h3 className="text-[15px] font-bold">검사 데이터 매핑 설정</h3>
+              </div>
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 flex-1 flex flex-col">
+                <div className="space-y-6 mb-8">
+                  <div>
+                    <label className="text-[12px] font-bold text-slate-700 block mb-2">검사 부서</label>
+                    <div className="relative flex items-center">
+                      <input type="text" placeholder="부서 선택" className="w-full border border-slate-200 rounded-l pl-3 pr-8 py-2 text-[13px] focus:outline-none focus:border-indigo-400" />
+                      <button className="px-3 py-2 border border-l-0 border-slate-200 rounded-r bg-slate-50 hover:bg-slate-100 text-slate-500">
+                        <Search className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-bold text-slate-700 block mb-2">대상 품목</label>
+                    <div className="relative flex items-center">
+                      <input type="text" placeholder="품목 선택" className="w-full border border-slate-200 rounded-l pl-3 pr-8 py-2 text-[13px] focus:outline-none focus:border-indigo-400" />
+                      <button className="px-3 py-2 border border-l-0 border-slate-200 rounded-r bg-slate-50 hover:bg-slate-100 text-slate-500">
+                        <Search className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50/50 border border-blue-100 rounded-md p-4 mb-auto">
+                  <div className="flex items-start gap-2 text-blue-600 mb-2">
+                    <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span className="text-[12px] font-bold">데이터 수신 안내</span>
+                  </div>
+                  <p className="text-[11px] text-blue-600/80 pl-6 leading-relaxed">
+                    비전 매트릭스 장비에서 불량 판정 시 ERP 내부 API 엔드포인트 <code className="bg-blue-100 px-1 py-0.5 rounded font-mono text-[10px] text-blue-800">/api/vision/hardware</code> 로 판정 결과를 전송하도록 설정하십시오.<br/><br/>
+                    필수 수신 데이터: 장비 ID, 판정 결과(OK/NG), 불량 코드, 이미지 저장 경로
+                  </p>
+                </div>
+
+                <button className="w-full mt-4 py-3.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-[13px] rounded shadow-sm transition-all flex items-center justify-center gap-2">
+                  <Save className="w-4 h-4" /> 하드웨어 연동 설정 저장 (VIS7 SDK)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 품목 검색 모달 */}

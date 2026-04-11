@@ -25,6 +25,11 @@ if (process.env.DATABASE_URL) {
   })
 }
 
+// ⚠️ 추가: 예상치 못한 DB 연결 끊김으로 인한 서버 크래시 방지
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err)
+})
+
 // SQL 쿼리 실행 함수
 export async function query(text: string, params: any[] = []) {
   try {
@@ -391,6 +396,33 @@ export async function initBoardTables() {
     `)
     console.log('📦 defect_type_mst 테이블 준비 완료')
 
+    // ─── 온톨로지(그래프 DB) 데이터 저장용 테이블 ───
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ontology_nodes (
+        id SERIAL PRIMARY KEY,
+        node_id VARCHAR(100) UNIQUE NOT NULL,
+        label VARCHAR(200) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        properties JSONB,
+        source_table VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `)
+    console.log('📦 ontology_nodes 테이블 준비 완료')
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ontology_edges (
+        id SERIAL PRIMARY KEY,
+        source_id VARCHAR(100) REFERENCES ontology_nodes(node_id) ON DELETE CASCADE,
+        target_id VARCHAR(100) REFERENCES ontology_nodes(node_id) ON DELETE CASCADE,
+        relationship VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(source_id, target_id, relationship)
+      );
+    `)
+    console.log('📦 ontology_edges 테이블 준비 완료')
+
     // 인덱스 생성
     await client.query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`)
     await client.query(`CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id)`)
@@ -416,7 +448,7 @@ export async function initBoardTables() {
       END;
       $$ LANGUAGE plpgsql;
     `)
-    await client.query(`DROP TRIGGER IF EXISTS trigger_feed_comments_count ON feed_comments`)
+    await client.query(`DROP TRIGGER IF EXISTS trigger_feed_comments_count ON feed_comments;`)
     await client.query(`
       CREATE TRIGGER trigger_feed_comments_count
         AFTER INSERT OR DELETE ON feed_comments

@@ -8,6 +8,7 @@ import * as knnClassifier from '@tensorflow-models/knn-classifier'
 import SmartFactoryWrapper from '@/components/SmartFactoryWrapper'
 import { useToolbarStore } from '@/store/useToolbarStore'
 import ItemSearchModal from '@/components/ItemSearchModal'
+import EmpSearchModal from '@/components/EmpSearchModal'
 
 /* ─────────────────── 타입 ─────────────────── */
 type InspectionReqItem = {
@@ -86,9 +87,11 @@ export default function InspectionRequest() {
   const [form, setForm] = useState<InspectionReq>(EMPTY_REQ)
   const [activeTab, setActiveTab] = useState('요청정보')
   const [isNew, setIsNew] = useState(false)
+  const [selectedRows, setSelectedRows] = useState<number[]>([])
 
   // AI & 품목 상태
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
+  const [isEmpModalOpen, setIsEmpModalOpen] = useState(false)
   const [currentItem, setCurrentItem] = useState<{cd: string, name: string} | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   
@@ -107,7 +110,7 @@ export default function InspectionRequest() {
         const loadedClassifier = knnClassifier.create()
         
         try {
-          const res = await fetch('/api/vision/settings')
+          const res = await fetch('/api/vision/settings?_t=' + Date.now())
           if (res.ok) {
             const data = await res.json()
             if (data.model) {
@@ -166,20 +169,33 @@ export default function InspectionRequest() {
   /* 삭제 */
   const delMut = useMutation({
     mutationFn: async () => {
-      if (!selected?.id) return
-      await fetch(`/api/inspection-request/${selected.id}`, { method: 'DELETE' })
+      // 체크박스로 선택된 항목들이 있으면 다중 삭제
+      if (selectedRows.length > 0) {
+        const promises = selectedRows.map(id => fetch(`/api/inspection-request/${id}`, { method: 'DELETE' }))
+        await Promise.all(promises)
+        return
+      }
+      // 체크박스 선택이 없고 현재 상세 조회 중인 항목이 있으면 단건 삭제
+      if (selected?.id) {
+        await fetch(`/api/inspection-request/${selected.id}`, { method: 'DELETE' })
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['/api/inspection-request'] })
       setForm(EMPTY_REQ)
       setSelected(null)
       setIsNew(false)
+      setSelectedRows([])
+      alert('삭제되었습니다.')
     },
   })
 
   const upd = (field: keyof InspectionReq, val: any) => setForm(f => ({ ...f, [field]: val }))
 
-  const handleSearch = () => setSearch({ ...filter })
+  const handleSearch = () => {
+    setSearch({ ...filter })
+    setSelectedRows([])
+  }
   
   const handleNew = () => {
     // 자동 생성되는 신규 요청번호 (예: 3565451731 처럼 타임스탬프 일부 사용)
@@ -198,8 +214,17 @@ export default function InspectionRequest() {
   }
 
   const handleDelete = () => {
-    if (!selected) return
-    if (confirm(`"${selected.req_no}" 요청을 삭제하시겠습니까?`)) delMut.mutate()
+    if (selectedRows.length > 0) {
+      if (confirm(`선택한 ${selectedRows.length}개의 요청을 삭제하시겠습니까?`)) {
+        delMut.mutate()
+      }
+    } else if (selected) {
+      if (confirm(`"${selected.req_no}" 요청을 삭제하시겠습니까?`)) {
+        delMut.mutate()
+      }
+    } else {
+      alert('삭제할 항목을 선택해주세요. (왼쪽 체크박스 선택 또는 행 클릭)')
+    }
   }
 
   const handleItemSelect = (item: any) => {
@@ -268,7 +293,7 @@ export default function InspectionRequest() {
       onDelete: handleDelete,
     })
     return () => clearActions()
-  }, [filter, isNew, selected, form])
+  }, [filter, isNew, selected, form, selectedRows])
 
   return (
     <SmartFactoryWrapper>
@@ -336,7 +361,18 @@ export default function InspectionRequest() {
                 <tr>
                   <th className="px-2 py-2 text-center font-medium text-slate-600 w-12">순번</th>
                   <th className="px-2 py-2 text-center font-medium text-slate-600 w-10">
-                    <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-300" />
+                    <input 
+                      type="checkbox" 
+                      className="w-3.5 h-3.5 rounded border-slate-300 cursor-pointer" 
+                      checked={rows.length > 0 && selectedRows.length === rows.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRows(rows.map(r => r.id!))
+                        } else {
+                          setSelectedRows([])
+                        }
+                      }}
+                    />
                   </th>
                   <th className="px-3 py-2 text-left font-medium text-slate-600">검사요청유형</th>
                   <th className="px-3 py-2 text-right font-medium text-slate-600">요청번호</th>
@@ -357,7 +393,19 @@ export default function InspectionRequest() {
                       {selected?.id === row.id ? <span className="text-orange-500 font-bold">▶ {idx + 1}</span> : idx + 1}
                     </td>
                     <td className="px-2 py-2.5 text-center">
-                      <input type="checkbox" className="w-3.5 h-3.5 rounded border-slate-300" onClick={e => e.stopPropagation()} />
+                      <input 
+                        type="checkbox" 
+                        className="w-3.5 h-3.5 rounded border-slate-300 cursor-pointer" 
+                        checked={selectedRows.includes(row.id!)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRows(prev => [...prev, row.id!])
+                          } else {
+                            setSelectedRows(prev => prev.filter(id => id !== row.id))
+                          }
+                        }}
+                        onClick={e => e.stopPropagation()} 
+                      />
                     </td>
                     <td className="px-3 py-2.5 font-medium text-slate-700">{row.defect_grp_cd}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-slate-600">{row.req_no}</td>
@@ -409,24 +457,30 @@ export default function InspectionRequest() {
                 <FieldRow label="담당자">
                   <div className="flex flex-1 gap-1">
                     <div className="flex w-24">
-                      <TInput value={form.manager_id} onChange={v => upd('manager_id', v)} className="rounded-r-none border-r-0" />
-                      <button className="px-2 bg-slate-50 border border-slate-200 border-l-0 rounded-r hover:bg-slate-100 text-slate-500">
+                      <TInput value={form.manager_id} disabled className="rounded-r-none border-r-0 bg-slate-50" />
+                      <button 
+                        onClick={() => setIsEmpModalOpen(true)}
+                        className="px-2 bg-white border border-slate-200 border-l-0 rounded-r hover:bg-slate-100 text-slate-500 transition-colors"
+                      >
                         <Search className="w-3 h-3" />
                       </button>
                     </div>
-                    <TInput value={form.manager_name} onChange={v => upd('manager_name', v)} className="flex-1 bg-slate-50" disabled />
+                    <TInput value={form.manager_name} className="flex-1 bg-slate-50" disabled />
                   </div>
                 </FieldRow>
 
                 <FieldRow label="부서">
                   <div className="flex flex-1 gap-1">
                     <div className="flex w-24">
-                      <TInput value={form.dept_cd} onChange={v => upd('dept_cd', v)} className="rounded-r-none border-r-0" />
-                      <button className="px-2 bg-slate-50 border border-slate-200 border-l-0 rounded-r hover:bg-slate-100 text-slate-500">
+                      <TInput value={form.dept_cd} disabled className="rounded-r-none border-r-0 bg-slate-50" />
+                      <button 
+                        onClick={() => setIsEmpModalOpen(true)}
+                        className="px-2 bg-white border border-slate-200 border-l-0 rounded-r hover:bg-slate-100 text-slate-500 transition-colors"
+                      >
                         <Search className="w-3 h-3" />
                       </button>
                     </div>
-                    <TInput value={form.dept_name} onChange={v => upd('dept_name', v)} className="flex-1 bg-slate-50" disabled />
+                    <TInput value={form.dept_name} className="flex-1 bg-slate-50" disabled />
                   </div>
                 </FieldRow>
                 {/* Empty spot to align grid */}
@@ -571,6 +625,18 @@ export default function InspectionRequest() {
         open={isItemModalOpen} 
         onOpenChange={setIsItemModalOpen} 
         onSelect={handleItemSelect} 
+      />
+
+      {/* 사원 검색 모달 */}
+      <EmpSearchModal 
+        open={isEmpModalOpen} 
+        onOpenChange={setIsEmpModalOpen} 
+        onSelect={(emp) => {
+          upd('manager_id', emp.emp_id)
+          upd('manager_name', emp.emp_name)
+          upd('dept_cd', emp.dept_name) // 이 시스템에서는 부서명을 코드로 쓰고 있음
+          upd('dept_name', emp.dept_name)
+        }} 
       />
 
       {/* 이미지 확대 모달 */}
